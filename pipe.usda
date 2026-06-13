@@ -49,10 +49,10 @@ def Xform "Root"
         def Shader "S"
         {
             uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor = (0.04, 0.30, 0.90)
+            color3f inputs:diffuseColor = (0.25, 0.55, 0.88)
             float inputs:metallic = 0.0
-            float inputs:roughness = 0.04
-            float inputs:opacity = 0.90
+            float inputs:roughness = 0.80
+            float inputs:opacity = 1.0
             token outputs:surface
         }
     }
