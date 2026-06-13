@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>AR Cube-500mm</title>
+  <title>AR Cube 500mm</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -18,34 +18,23 @@
     }
 
     #bg-video {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       width: 100%; height: 100%;
-      object-fit: cover;
-      z-index: 0;
+      object-fit: cover; z-index: 0;
     }
     #three-canvas {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
+      position: fixed; inset: 0; z-index: 10;
     }
     #ui {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      pointer-events: none;
-      display: none;
+      position: fixed; inset: 0; z-index: 20;
+      pointer-events: none; display: none;
     }
 
     /* ── Start Screen ── */
     #start-screen {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       padding: 2rem;
       background: linear-gradient(160deg, #0d1117, #161b22);
       color: #e6edf3;
@@ -58,10 +47,8 @@
     }
     .info-box {
       width: 100%; max-width: 360px;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 14px;
-      padding: 1rem 1.2rem;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 14px; padding: 1rem 1.2rem;
       margin-bottom: 1.5rem;
       font-size: 0.82rem; color: #8b949e; line-height: 1.8;
     }
@@ -87,11 +74,8 @@
       position: absolute;
       top: env(safe-area-inset-top, 16px);
       left: 0; right: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 16px;
-      pointer-events: auto;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; pointer-events: auto;
     }
     .badge {
       background: rgba(0,0,0,0.55);
@@ -111,18 +95,15 @@
       position: absolute;
       bottom: env(safe-area-inset-bottom, 28px);
       left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column;
-      align-items: center; gap: 10px;
-      pointer-events: auto;
-      width: 90%; max-width: 400px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      pointer-events: auto; width: 90%; max-width: 400px;
     }
     #status {
       background: rgba(0,0,0,0.60);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       color: #fff; padding: 10px 20px;
       border-radius: 22px; font-size: 0.88rem;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.10);
+      text-align: center; border: 1px solid rgba(255,255,255,0.10);
       width: 100%;
     }
     #btn-row { display: flex; gap: 10px; }
@@ -146,7 +127,7 @@
       content: ''; position: absolute; background: #fff;
     }
     #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-    #crosshair::after  { height: 2px; width: 100%; top:  50%; transform: translateY(-50%); }
+    #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
   </style>
 </head>
 <body>
@@ -161,7 +142,7 @@
   </div>
   <div id="crosshair"></div>
   <div id="bottom-panel">
-    <div id="status">カメラを床に向けてタップで配置</div>
+    <div id="status">タップしてキューブを配置</div>
     <div id="btn-row">
       <button class="ar-btn hidden" id="btn-rl"    onclick="rotateCube(-1)">← 回転</button>
       <button class="ar-btn hidden" id="btn-rr"    onclick="rotateCube( 1)">回転 →</button>
@@ -181,58 +162,65 @@
     ③ ドラッグで移動<br>
     ④ ← → ボタンで回転
   </div>
-  <button id="start-btn" onclick="startAR()">▶ AR を開始</button>
+  <button id="start-btn" onclick="startAR()">読み込み中...</button>
   <div id="err"></div>
 </div>
 
-<!-- Three.js を読み込んでから inline script を実行 -->
 <script>
-// Three.js を動的に読み込み、完了後に準備完了とする
+/* Three.js を動的に読み込み、完了したらボタンを有効化 */
 (function () {
+  var btn = document.getElementById('start-btn');
+  btn.disabled = true;
   var s = document.createElement('script');
   s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
   s.onload = function () {
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('start-btn').textContent = '▶ AR を開始';
+    btn.disabled = false;
+    btn.textContent = '▶ AR を開始';
   };
   s.onerror = function () {
     document.getElementById('err').textContent =
-      'Three.js の読み込みに失敗しました。\nWi-Fi 接続を確認してもう一度お試しください。';
-    document.getElementById('start-btn').textContent = '読み込み失敗';
+      'Three.js の読み込みに失敗しました。\nWi-Fi を確認してページを再読み込みしてください。';
+    btn.textContent = '読み込み失敗';
   };
   document.head.appendChild(s);
-  // ロード中はボタン無効
-  document.getElementById('start-btn').disabled = true;
-  document.getElementById('start-btn').textContent = '読み込み中...';
 })();
 </script>
 
 <script>
 'use strict';
 
-// ── State (Three.js 依存の初期化はすべて関数内で行う) ──────────────────
+/* ----------------------------------------------------------------
+   グローバル変数
+   ※ THREE.* を使うものはすべて関数の中でのみ初期化する
+---------------------------------------------------------------- */
 var renderer, scene, camera, animId;
 var cubeGroup;
 var cubeRotY    = 0;
 var cubeVisible = false;
 var cameraStream = null;
 
-var isDragging    = false;
-var lastTouch     = null;
-var touchStartPos = null;
+var isDragging     = false;
+var lastTouch      = null;
+var touchStartPos  = null;
 var touchStartTime = 0;
 
 var orientGranted = false;
 var orientAlpha = 0, orientBeta = 90, orientGamma = 0;
-var smoothQ = null;   // THREE.Quaternion — 初期化は initThree() 内
+
+/* Three.js オブジェクト — initThree() の中で生成する */
+var smoothQ = null;
+var _euler  = null;
+var _quat   = null;
+var _qBase  = null;
 
 var TAP_MS = 250;
 var TAP_PX = 12;
 
-// ── Error helper ──────────────────────────────────────────────────
+/* ----------------------------------------------------------------
+   ユーティリティ
+---------------------------------------------------------------- */
 function showErr(msg) {
-  var el = document.getElementById('err');
-  el.textContent = msg;
+  document.getElementById('err').textContent = msg;
   var btn = document.getElementById('start-btn');
   btn.disabled = false;
   btn.textContent = '▶ もう一度試す';
@@ -243,38 +231,42 @@ function setStatus(msg) {
   if (el) el.textContent = msg;
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  startAR
-// ══════════════════════════════════════════════════════════════════
+function showCubeButtons(show) {
+  ['btn-rl', 'btn-rr', 'btn-reset'].forEach(function (id) {
+    document.getElementById(id).classList.toggle('hidden', !show);
+  });
+}
+
+/* ----------------------------------------------------------------
+   startAR
+---------------------------------------------------------------- */
 async function startAR() {
   var btn = document.getElementById('start-btn');
   btn.disabled = true;
   btn.textContent = '起動中...';
   document.getElementById('err').textContent = '';
 
-  // ① Three.js チェック
+  /* ① Three.js 確認 */
   if (typeof THREE === 'undefined') {
-    showErr('Three.js がまだ読み込まれていません。\nしばらく待ってもう一度お試しください。');
+    showErr('Three.js がまだ読み込まれていません。\nしばらく待ってもう一度タップしてください。');
     return;
   }
 
-  // ② DeviceOrientation 許可（iOS 13+ は必ずユーザー操作の直後に要求）
+  /* ② DeviceOrientation 許可（iOS 13+ はユーザー操作直後に呼ぶ必要がある） */
   orientGranted = false;
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
       var res = await DeviceOrientationEvent.requestPermission();
       orientGranted = (res === 'granted');
-    } catch (e) {
-      // 許可されなくても続行（固定カメラ角度になる）
-    }
+    } catch (_) { /* 拒否されても続行 */ }
   } else {
     orientGranted = true;
   }
 
-  // ③ カメラ
+  /* ③ カメラ取得 */
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showErr('カメラ API が利用できません。\nHTTPS で開いているか確認してください。');
+    showErr('カメラ API が使えません。\nHTTPS で開いているか確認してください。');
     return;
   }
   try {
@@ -289,14 +281,14 @@ async function startAR() {
 
   var video = document.getElementById('bg-video');
   video.srcObject = cameraStream;
-  try { await video.play(); } catch(_) {}
+  try { await video.play(); } catch (_) {}
 
-  // ④ ジャイロ
+  /* ④ ジャイロ登録 */
   if (orientGranted) {
     window.addEventListener('deviceorientation', onOrientation, true);
   }
 
-  // ⑤ Three.js
+  /* ⑤ Three.js 初期化 */
   try {
     initThree();
   } catch (e) {
@@ -304,16 +296,15 @@ async function startAR() {
     return;
   }
 
-  // ⑥ タッチ
+  /* ⑥ タッチイベント */
   var canvas = document.getElementById('three-canvas');
   canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
   canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
   canvas.addEventListener('touchend',    onTouchEnd,    { passive: false });
   canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
-
   window.addEventListener('resize', onResize);
 
-  // ⑦ UI 切替
+  /* ⑦ 画面切り替え */
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('ui').style.display = 'block';
 
@@ -321,16 +312,16 @@ async function startAR() {
   animate();
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  stopAR
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   stopAR
+---------------------------------------------------------------- */
 function stopAR() {
   cancelAnimationFrame(animId);
 
   if (renderer) { renderer.dispose(); renderer = null; }
 
   if (cameraStream) {
-    cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    cameraStream.getTracks().forEach(function (t) { t.stop(); });
     cameraStream = null;
   }
   document.getElementById('bg-video').srcObject = null;
@@ -346,6 +337,8 @@ function stopAR() {
 
   cubeVisible = false;
   cubeRotY    = 0;
+  smoothQ     = null;
+  _euler = _quat = _qBase = null;
   showCubeButtons(false);
 
   document.getElementById('ui').style.display = 'none';
@@ -356,14 +349,16 @@ function stopAR() {
   btn.textContent = '▶ AR を開始';
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  initThree
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   initThree  ※ ここで初めて THREE.* を使う
+---------------------------------------------------------------- */
 function initThree() {
-  smoothQ = new THREE.Quaternion();   // ← THREE 確定後に初期化
+  smoothQ = new THREE.Quaternion();
 
   scene  = new THREE.Scene();
-  var W  = window.innerWidth, H = window.innerHeight;
+  var W  = window.innerWidth;
+  var H  = window.innerHeight;
+
   camera = new THREE.PerspectiveCamera(60, W / H, 0.01, 50);
   camera.position.set(0, 1.2, 0);
   camera.lookAt(0, 0, -1.5);
@@ -372,22 +367,22 @@ function initThree() {
   renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(0x000000, 0); /* 完全透明 → 背後の映像が見える */
 
-  // 照明
+  /* 照明 */
   scene.add(new THREE.AmbientLight(0xffffff, 1.4));
   var sun = new THREE.DirectionalLight(0xfff5e0, 2.0);
   sun.position.set(2, 5, 3);
   scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
 
-  // 床グリッド
+  /* 床グリッド */
   var grid = new THREE.GridHelper(10, 20, 0xffffff, 0xffffff);
   grid.material.opacity = 0.10;
   grid.material.transparent = true;
   scene.add(grid);
 
-  // キューブ（500mm = 0.5m）
+  /* キューブ（500mm = 0.5m） */
   cubeGroup = new THREE.Group();
   cubeGroup.visible = false;
   scene.add(cubeGroup);
@@ -395,20 +390,17 @@ function initThree() {
   var SIZE = 0.5;
   var geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
 
-  var faceMat = new THREE.MeshStandardMaterial({
-    color: 0x1565C0,
-    roughness: 0.35,
-    metalness: 0.2,
-    transparent: true,
-    opacity: 0.90,
-  });
-  cubeGroup.add(new THREE.Mesh(geo, faceMat));
+  cubeGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color: 0x1565C0, roughness: 0.35, metalness: 0.2,
+    transparent: true, opacity: 0.90
+  })));
+
   cubeGroup.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
     new THREE.LineBasicMaterial({ color: 0xffffff })
   ));
 
-  // 影ディスク
+  /* 影ディスク */
   var discGeo = new THREE.CircleGeometry(0.28, 32);
   discGeo.rotateX(-Math.PI / 2);
   var disc = new THREE.Mesh(discGeo,
@@ -418,9 +410,9 @@ function initThree() {
   cubeGroup.add(disc);
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  Render Loop
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   レンダーループ
+---------------------------------------------------------------- */
 function animate() {
   animId = requestAnimationFrame(animate);
   if (!renderer) return;
@@ -428,23 +420,18 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  DeviceOrientation → カメラ回転
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   DeviceOrientation → カメラ回転
+---------------------------------------------------------------- */
 function onOrientation(e) {
   if (e.alpha != null) orientAlpha = e.alpha;
   if (e.beta  != null) orientBeta  = e.beta;
   if (e.gamma != null) orientGamma = e.gamma;
 }
 
-var _euler  = null;
-var _quat   = null;
-var _qBase  = null;
-
 function applyCameraOrientation() {
-  if (!orientGranted || !smoothQ) return;
+  if (!orientGranted || !smoothQ || !camera) return;
 
-  // 初回だけ生成
   if (!_euler) {
     _euler = new THREE.Euler();
     _quat  = new THREE.Quaternion();
@@ -465,14 +452,13 @@ function applyCameraOrientation() {
     0, 0, -Math.sin(screenAngle / 2), Math.cos(screenAngle / 2)
   );
   _quat.premultiply(_qBase).multiply(qScreen);
-
   smoothQ.slerp(_quat, 0.12);
   camera.quaternion.copy(smoothQ);
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  Touch
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   タッチ処理
+---------------------------------------------------------------- */
 function onTouchStart(e) {
   e.preventDefault();
   if (e.touches.length !== 1) return;
@@ -493,17 +479,16 @@ function onTouchMove(e) {
   if (!isDragging && Math.sqrt(dx * dx + dy * dy) > TAP_PX) isDragging = true;
 
   if (isDragging && cubeVisible) {
-    var delta = screenDeltaToWorld(t.clientX - lastTouch.x, t.clientY - lastTouch.y);
-    cubeGroup.position.x += delta.x;
-    cubeGroup.position.z += delta.z;
+    var d = screenDeltaToWorld(t.clientX - lastTouch.x, t.clientY - lastTouch.y);
+    cubeGroup.position.x += d.x;
+    cubeGroup.position.z += d.z;
   }
   lastTouch = { x: t.clientX, y: t.clientY };
 }
 
 function onTouchEnd(e) {
   e.preventDefault();
-  var elapsed = Date.now() - touchStartTime;
-  if (!isDragging && elapsed < TAP_MS && touchStartPos) {
+  if (!isDragging && (Date.now() - touchStartTime) < TAP_MS && touchStartPos) {
     placeCubeAtScreen(touchStartPos.x, touchStartPos.y);
   }
   isDragging    = false;
@@ -518,18 +503,16 @@ function onTouchCancel(e) {
   lastTouch     = null;
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  キューブをタップ位置に配置（床平面 y=0 との交点）
-// ══════════════════════════════════════════════════════════════════
-var _ray  = new THREE.Raycaster();   // THREE 未ロード時は実行されないので安全
-// ↑ これは問題になる。関数内に移動する
+/* ----------------------------------------------------------------
+   タップ位置 → 床平面 (y=0) にキューブを配置
+---------------------------------------------------------------- */
 function placeCubeAtScreen(sx, sy) {
-  if (!camera || !scene) return;
+  if (!camera || !cubeGroup) return;
 
   var raycaster = new THREE.Raycaster();
   var ndc = new THREE.Vector2(
-    (sx / window.innerWidth)  * 2 - 1,
-    -(sy / window.innerHeight) * 2 + 1
+    (sx / window.innerWidth)  *  2 - 1,
+    (sy / window.innerHeight) * -2 + 1
   );
   raycaster.setFromCamera(ndc, camera);
 
@@ -546,14 +529,14 @@ function placeCubeAtScreen(sx, sy) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  スクリーン移動量 → ワールド XZ 変換
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   スクリーンの移動量 → ワールド XZ 変換
+---------------------------------------------------------------- */
 function screenDeltaToWorld(dsx, dsy) {
   if (!camera || !cubeGroup) return { x: 0, z: 0 };
 
-  var right   = new THREE.Vector3();
   var forward = new THREE.Vector3();
+  var right   = new THREE.Vector3();
   var up      = new THREE.Vector3(0, 1, 0);
 
   camera.getWorldDirection(forward);
@@ -562,19 +545,18 @@ function screenDeltaToWorld(dsx, dsy) {
   forward.normalize();
   right.crossVectors(forward, up).normalize();
 
-  var dist = camera.position.distanceTo(cubeGroup.position);
-  var fovY = THREE.MathUtils.degToRad(camera.fov);
-  var scale = (2 * dist * Math.tan(fovY / 2)) / window.innerHeight;
+  var dist  = camera.position.distanceTo(cubeGroup.position);
+  var scale = (2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / window.innerHeight;
 
   return {
     x: (-right.x * dsx + forward.x * dsy) * scale,
-    z: (-right.z * dsx + forward.z * dsy) * scale,
+    z: (-right.z * dsx + forward.z * dsy) * scale
   };
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  コントロール
-// ══════════════════════════════════════════════════════════════════
+/* ----------------------------------------------------------------
+   ボタン操作
+---------------------------------------------------------------- */
 function rotateCube(dir) {
   cubeRotY += dir * (Math.PI / 4);
   cubeGroup.rotation.y = cubeRotY;
@@ -587,12 +569,6 @@ function resetCube() {
   cubeGroup.rotation.y = 0;
   showCubeButtons(false);
   setStatus('タップしてキューブを配置');
-}
-
-function showCubeButtons(show) {
-  ['btn-rl','btn-rr','btn-reset'].forEach(function(id) {
-    document.getElementById(id).classList.toggle('hidden', !show);
-  });
 }
 
 function onResize() {
