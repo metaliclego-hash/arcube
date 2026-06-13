@@ -7,7 +7,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
       background: #0f0f1a;
@@ -19,7 +18,6 @@
       justify-content: center;
       padding: 1.5rem;
     }
-
     .card {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(100,160,255,0.3);
@@ -29,7 +27,6 @@
       width: 100%;
       backdrop-filter: blur(12px);
     }
-
     h1 {
       font-size: 1.4rem;
       font-weight: 700;
@@ -40,149 +37,113 @@
       background-clip: text;
       margin-bottom: 0.2rem;
     }
+    .subtitle { text-align: center; font-size: 0.8rem; color: #667; margin-bottom: 1.4rem; }
 
-    .subtitle {
-      text-align: center;
-      font-size: 0.8rem;
-      color: #667;
-      margin-bottom: 1.4rem;
-    }
+    .diagram { display: flex; justify-content: center; margin-bottom: 1.4rem; }
 
-    /* Cross-section diagram */
-    .diagram {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 1.4rem;
-    }
-
-    /* Sliders */
     .param { margin-bottom: 1.2rem; }
-
-    .param-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 0.4rem;
-    }
-
+    .param-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
     .param-name { font-size: 0.88rem; color: #8899cc; }
-
-    .param-value {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #fff;
-    }
-
+    .param-value { font-size: 1.3rem; font-weight: 700; color: #fff; }
     .param-unit { font-size: 0.75rem; color: #556; margin-left: 2px; }
 
     input[type="range"] {
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      -webkit-appearance: none;
-      appearance: none;
-      background: linear-gradient(
-        to right,
-        #3a7bd5 0%,
-        #3a7bd5 var(--pct, 20%),
-        rgba(255,255,255,0.12) var(--pct, 20%)
-      );
+      width: 100%; height: 6px; border-radius: 3px;
+      -webkit-appearance: none; appearance: none;
+      background: linear-gradient(to right, #3a7bd5 0%, #3a7bd5 var(--pct,20%), rgba(255,255,255,0.12) var(--pct,20%));
       outline: none;
     }
-
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      cursor: pointer;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer;
     }
 
-    /* Calculated info */
     .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.8rem;
-      background: rgba(0,0,0,0.25);
-      border-radius: 14px;
-      padding: 0.9rem 1rem;
-      margin-bottom: 1.4rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;
+      background: rgba(0,0,0,0.25); border-radius: 14px;
+      padding: 0.9rem 1rem; margin-bottom: 1rem;
     }
-
     .info-cell { text-align: center; }
     .info-label { font-size: 0.72rem; color: #445; margin-bottom: 0.2rem; }
     .info-val { font-size: 1rem; font-weight: 600; }
 
-    /* AR button (also acts as rel=ar anchor) */
+    /* 地中モード トグル */
+    .mode-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0,0,0,0.2); border-radius: 12px;
+      padding: 0.75rem 1rem; margin-bottom: 1rem;
+    }
+    .mode-label { font-size: 0.9rem; color: #aac; }
+    .toggle-wrap { position: relative; width: 48px; height: 26px; }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 13px;
+      background: rgba(255,255,255,0.1); cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-wrap input:checked + .toggle-track { background: #3a7bd5; }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px; width: 20px; height: 20px;
+      background: #fff; border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
+    }
+    .toggle-wrap input:checked + .toggle-track::after { transform: translateX(22px); }
+
+    /* 地中パラメータセクション */
+    .ug-section {
+      border-top: 1px solid rgba(100,160,255,0.15);
+      padding-top: 1rem; margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: 0.75rem; color: #556; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 0.8rem;
+    }
+    .info-grid-3 {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem;
+      background: rgba(0,0,0,0.25); border-radius: 14px;
+      padding: 0.8rem 0.6rem; margin-bottom: 1rem;
+    }
+
     .ar-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      width: 100%;
-      background: linear-gradient(135deg, #3a7bd5, #6c5ce7);
-      color: white;
-      text-decoration: none;
-      font-size: 1.1rem;
-      font-weight: 600;
-      padding: 1rem;
-      border-radius: 50px;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      width: 100%; background: linear-gradient(135deg, #3a7bd5, #6c5ce7);
+      color: white; text-decoration: none; font-size: 1.1rem; font-weight: 600;
+      padding: 1rem; border-radius: 50px;
       box-shadow: 0 4px 20px rgba(100,140,255,0.35);
       -webkit-tap-highlight-color: transparent;
       transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
-
-    .ar-btn:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(100,140,255,0.2); }
+    .ar-btn:active { transform: scale(0.97); }
     .ar-btn.loading { opacity: 0.6; pointer-events: none; }
-
-    .status {
-      text-align: center;
-      font-size: 0.75rem;
-      color: #445;
-      margin-top: 0.8rem;
-      min-height: 1em;
-    }
-
-    .badge {
-      text-align: center;
-      font-size: 0.7rem;
-      color: #334;
-      margin-top: 0.6rem;
-    }
+    .status { text-align: center; font-size: 0.75rem; color: #445; margin-top: 0.8rem; min-height: 1em; }
+    .badge { text-align: center; font-size: 0.7rem; color: #334; margin-top: 0.6rem; }
   </style>
 </head>
 <body>
 <div class="card">
-
   <h1>水道管 AR サイズチェッカー</h1>
   <p class="subtitle">実際の空間でパイプのサイズを確認</p>
 
-  <!-- Cross-section diagram -->
   <div class="diagram">
     <svg width="160" height="160" viewBox="-80 -80 160 160">
-      <!-- water fill -->
       <circle id="svg-water" r="55" fill="rgba(20,110,255,0.60)"/>
-      <!-- pipe wall (stroke only) -->
-      <circle id="svg-pipe" r="60" fill="none" stroke="rgba(180,185,205,0.85)" stroke-width="8"/>
-      <!-- OD label -->
-      <line x1="-65" y1="0" x2="65" y2="0" stroke="rgba(100,130,200,0.35)" stroke-width="1" stroke-dasharray="4,3"/>
-      <text x="0" y="-70" text-anchor="middle" fill="#445" font-size="10"
-            font-family="-apple-system,sans-serif">← 外径 →</text>
+      <circle id="svg-pipe"  r="60" fill="none" stroke="rgba(180,185,205,0.85)" stroke-width="8"/>
+      <line x1="-65" y1="0" x2="65" y2="0" stroke="rgba(100,130,200,0.3)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="0" y="-70" text-anchor="middle" fill="#445" font-size="10" font-family="-apple-system,sans-serif">← 外径 →</text>
     </svg>
   </div>
 
-  <!-- Outer diameter -->
   <div class="param">
     <div class="param-row">
       <span class="param-name">外径</span>
-      <span><span class="param-value" id="od-val">50</span><span class="param-unit"> mm</span></span>
+      <span><span class="param-value" id="od-val">100</span><span class="param-unit"> mm</span></span>
     </div>
     <input type="range" id="od" min="10" max="2000" value="100" step="5">
   </div>
 
-  <!-- Length -->
   <div class="param">
     <div class="param-row">
       <span class="param-name">長さ</span>
@@ -191,23 +152,62 @@
     <input type="range" id="len" min="100" max="3000" value="500" step="10">
   </div>
 
-  <!-- Calculated values -->
   <div class="info-grid">
     <div class="info-cell">
       <div class="info-label">肉厚（自動）</div>
-      <div class="info-val"><span id="wall-val">2.0</span> mm</div>
+      <div class="info-val"><span id="wall-val">4.0</span> mm</div>
     </div>
     <div class="info-cell">
       <div class="info-label">内径</div>
-      <div class="info-val"><span id="id-val">46.0</span> mm</div>
+      <div class="info-val"><span id="id-val">92.0</span> mm</div>
     </div>
   </div>
 
-  <!--
-    rel="ar" anchor — ARQuickLookのトリガー。
-    hrefはスライダー変更ごとにJSが動的USDZのblob URLに更新する。
-    ユーザーが直接タップすることでiOSのARQuickLookが起動する。
-  -->
+  <!-- 地中モード トグル -->
+  <div class="mode-row">
+    <span class="mode-label">地中モード</span>
+    <label class="toggle-wrap">
+      <input type="checkbox" id="ug-toggle" onchange="onModeChange()">
+      <span class="toggle-track"></span>
+    </label>
+  </div>
+
+  <!-- 地中パラメータ（初期非表示） -->
+  <div id="ug-section" class="ug-section" style="display:none">
+    <div class="section-title">埋設条件</div>
+
+    <div class="param">
+      <div class="param-row">
+        <span class="param-name">埋設深さ <small style="color:#445;font-size:0.7rem">（地面→管上端）</small></span>
+        <span><span class="param-value" id="burial-val">600</span><span class="param-unit"> mm</span></span>
+      </div>
+      <input type="range" id="burial" min="0" max="2000" value="600" step="10">
+    </div>
+
+    <div class="param">
+      <div class="param-row">
+        <span class="param-name">掘削幅</span>
+        <span><span class="param-value" id="width-val">800</span><span class="param-unit"> mm</span></span>
+      </div>
+      <input type="range" id="width" min="200" max="3000" value="800" step="50">
+    </div>
+
+    <div class="info-grid-3">
+      <div class="info-cell">
+        <div class="info-label">掘削深さ</div>
+        <div class="info-val" style="font-size:0.9rem"><span id="tdepth-val">700</span> mm</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">掘削幅</div>
+        <div class="info-val" style="font-size:0.9rem"><span id="twidth-val">800</span> mm</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">掘削長さ</div>
+        <div class="info-val" style="font-size:0.9rem"><span id="tlen-val">500</span> mm</div>
+      </div>
+    </div>
+  </div>
+
   <a id="ar-link" class="ar-btn loading" rel="ar" href="#">
     <img src="" alt="" style="display:none" width="0" height="0">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -221,29 +221,116 @@
 
   <p id="status" class="status"></p>
   <p class="badge">Safari / Chrome 対応 · iOS 26+</p>
-
 </div>
 
 <script>
-const odSlider  = document.getElementById('od');
-const lenSlider = document.getElementById('len');
-const arLink    = document.getElementById('ar-link');
-const btnLabel  = document.getElementById('btn-label');
-const statusEl  = document.getElementById('status');
+// ── Minecraft風ダート テクスチャ (16×16) ─────────────────────────────────
+const DIRT_PAL = [
+  [134, 96, 67], [101, 67, 50], [161,118, 80], [118, 85, 57],
+  [150,109, 73], [ 90, 60, 40], [143,103, 68], [109, 75, 52],
+];
+const DIRT_MAP = [
+  3,1,3,0,6,2,7,0,3,5,3,0,6,2,7,0,
+  0,3,1,3,0,7,3,2,0,3,1,3,0,7,3,2,
+  6,0,4,1,3,0,5,3,6,0,4,1,3,0,5,3,
+  1,6,0,4,1,6,2,0,1,6,0,4,1,6,2,0,
+  3,2,6,0,4,1,3,6,3,2,6,0,4,1,3,6,
+  0,3,1,6,0,4,0,1,0,3,1,6,0,4,0,1,
+  6,1,3,2,6,0,4,3,6,1,3,2,6,0,4,3,
+  1,4,0,3,1,6,0,4,1,4,0,3,1,6,0,4,
+  3,0,6,1,3,2,6,0,3,0,6,1,3,2,6,0,
+  0,5,1,4,0,3,1,6,0,5,1,4,0,3,1,6,
+  6,2,4,0,6,1,4,0,6,2,4,0,6,1,4,0,
+  1,3,0,6,1,4,0,3,1,3,0,6,1,4,0,3,
+  3,0,6,2,3,0,6,1,3,0,6,2,3,0,6,1,
+  0,6,1,3,0,6,1,4,0,6,1,3,0,6,1,4,
+  6,1,4,0,6,2,4,0,6,1,4,0,6,2,4,0,
+  1,4,0,6,1,3,0,6,1,4,0,6,1,3,0,6,
+];
 
-// 肉厚 = max(2mm, 外径 × 4%)
+async function buildDirtTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 16; canvas.height = 16;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(16, 16);
+  for (let i = 0; i < 256; i++) {
+    const [r,g,b] = DIRT_PAL[DIRT_MAP[i]];
+    img.data[i*4]   = r;
+    img.data[i*4+1] = g;
+    img.data[i*4+2] = b;
+    img.data[i*4+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return new Promise(resolve => {
+    canvas.toBlob(blob => blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf))), 'image/png');
+  });
+}
+
+// ── 状態 ─────────────────────────────────────────────────────────────────
+let isUG = false;
+
+const odSlider     = document.getElementById('od');
+const lenSlider    = document.getElementById('len');
+const burialSlider = document.getElementById('burial');
+const widthSlider  = document.getElementById('width');
+const arLink       = document.getElementById('ar-link');
+const btnLabel     = document.getElementById('btn-label');
+const statusEl     = document.getElementById('status');
+
+// ── ヘルパー ──────────────────────────────────────────────────────────────
 function calcWall(od) {
   return Math.max(2.0, parseFloat((od * 0.04).toFixed(1)));
 }
 
-// USD Cylinder プリミティブはスムーズ法線のためギラつく。
-// 筒状ポリゴンメッシュ＋faceVarying法線にするとフラットシェーディングになりマットに見える。
+function setPct(el, min, max, val) {
+  el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
+}
+
+// ── UI 更新 ───────────────────────────────────────────────────────────────
+function updateUI() {
+  const od     = parseInt(odSlider.value);
+  const len    = parseInt(lenSlider.value);
+  const wall   = calcWall(od);
+  const innerD = parseFloat((od - wall * 2).toFixed(1));
+
+  document.getElementById('od-val').textContent   = od;
+  document.getElementById('len-val').textContent  = len;
+  document.getElementById('wall-val').textContent = wall;
+  document.getElementById('id-val').textContent   = innerD;
+
+  setPct(odSlider,  10, 2000, od);
+  setPct(lenSlider, 100, 3000, len);
+
+  const R = 65;
+  const wallPx = Math.max(4, (wall / (od / 2)) * R);
+  const waterR = Math.max(2, R - wallPx);
+  document.getElementById('svg-pipe').setAttribute('r', R - wallPx / 2);
+  document.getElementById('svg-pipe').setAttribute('stroke-width', wallPx);
+  document.getElementById('svg-water').setAttribute('r', waterR);
+
+  if (isUG) {
+    const burial = parseInt(burialSlider.value);
+    const width  = parseInt(widthSlider.value);
+    const tdepth = burial + od;
+    document.getElementById('burial-val').textContent = burial;
+    document.getElementById('width-val').textContent  = width;
+    document.getElementById('tdepth-val').textContent = tdepth;
+    document.getElementById('twidth-val').textContent = width;
+    document.getElementById('tlen-val').textContent   = len;
+    setPct(burialSlider, 0, 2000, burial);
+    setPct(widthSlider, 200, 3000, width);
+  }
+}
+
+function onModeChange() {
+  isUG = document.getElementById('ug-toggle').checked;
+  document.getElementById('ug-section').style.display = isUG ? 'block' : 'none';
+  updateUI();
+  scheduleRegen();
+}
+
+// ── メッシュ生成：筒状パイプ ─────────────────────────────────────────────
 function buildTubeMesh(outerR, innerR, H, N) {
-  // 頂点レイアウト（各N個）:
-  //   0..N-1    外円・左端 (x=-H/2)
-  //   N..2N-1   外円・右端 (x=+H/2)
-  //   2N..3N-1  内円・左端 (x=-H/2)
-  //   3N..4N-1  内円・右端 (x=+H/2)
   const pts = [];
   for (let ring = 0; ring < 4; ring++) {
     const x = (ring % 2 === 0) ? -H / 2 : H / 2;
@@ -253,40 +340,118 @@ function buildTubeMesh(outerR, innerR, H, N) {
       pts.push([x, r * Math.cos(θ), r * Math.sin(θ)]);
     }
   }
-
   const counts = [], indices = [], norms = [];
-  const face = (a, b, c, d, nx, ny, nz) => {
-    counts.push(4);
-    indices.push(a, b, c, d);
-    for (let k = 0; k < 4; k++) norms.push([nx, ny, nz]);
+  const face = (a,b,c,d, nx,ny,nz) => {
+    counts.push(4); indices.push(a,b,c,d);
+    for (let k=0;k<4;k++) norms.push([nx,ny,nz]);
   };
-
   for (let i = 0; i < N; i++) {
     const j  = (i + 1) % N;
     const θm = 2 * Math.PI * (i + 0.5) / N;
     const cy = Math.cos(θm), cz = Math.sin(θm);
-    face(i,      j,      N+j,    N+i,    0,   cy,  cz);  // 外周面（外向き法線）
-    face(2*N+i,  3*N+i,  3*N+j,  2*N+j,  0,  -cy, -cz);  // 内周面（内向き法線）
-    face(i,      2*N+i,  2*N+j,  j,     -1,   0,   0);   // 左端リング（-X 法線）
-    face(N+i,    N+j,    3*N+j,  3*N+i,  1,   0,   0);   // 右端リング（+X 法線）
+    face(i,      j,      N+j,    N+i,    0,  cy,  cz);
+    face(2*N+i,  3*N+i,  3*N+j,  2*N+j,  0, -cy, -cz);
+    face(i,      2*N+i,  2*N+j,  j,     -1,  0,   0);
+    face(N+i,    N+j,    3*N+j,  3*N+i,  1,  0,   0);
   }
-
   return {
-    pStr: pts.map(([x,y,z]) => `(${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)})`).join(', '),
+    pStr: pts.map(([x,y,z])=>`(${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)})`).join(', '),
     cStr: counts.join(', '),
     iStr: indices.join(', '),
-    nStr: norms.map(([x,y,z]) => `(${x.toFixed(6)}, ${y.toFixed(6)}, ${z.toFixed(6)})`).join(', '),
+    nStr: norms.map(([x,y,z])=>`(${x.toFixed(6)}, ${y.toFixed(6)}, ${z.toFixed(6)})`).join(', '),
   };
 }
 
+// ── メッシュ生成：溝（5面） ───────────────────────────────────────────────
+// L=長さ(X), W=幅(Z), D=深さ(Y). 地面 Y=0, 底面 Y=-D.
+// 5面すべて溝の内側を向く（内向き法線）
+function buildTrenchMesh(L, W, D) {
+  const hL = L/2, hW = W/2;
+  const T  = 30; // テクスチャタイルサイズ(cm)
+  const uL = L/T, uW = W/T, uD = D/T;
+
+  // 頂点 8個
+  const pts = [
+    [-hL,  0, -hW], // 0  地面・前左
+    [-hL,  0,  hW], // 1  地面・後左
+    [ hL,  0, -hW], // 2  地面・前右
+    [ hL,  0,  hW], // 3  地面・後右
+    [-hL, -D, -hW], // 4  底面・前左
+    [-hL, -D,  hW], // 5  底面・後左
+    [ hL, -D, -hW], // 6  底面・前右
+    [ hL, -D,  hW], // 7  底面・後右
+  ];
+
+  // 各面: [頂点インデックス4個, 法線3成分, UV4組]
+  // 法線の向き検証済み（cross product）
+  const faceDefs = [
+    { vi:[5,7,6,4], n:[0, 1,0], uv:[[0,uW],[uL,uW],[uL,0],[0,0]] },       // 底面 → +Y
+    { vi:[0,4,6,2], n:[0, 0,1], uv:[[0,uD],[0,0],[uL,0],[uL,uD]] },       // 前壁 Z=-hW → +Z
+    { vi:[1,3,7,5], n:[0, 0,-1],uv:[[0,uD],[uL,uD],[uL,0],[0,0]] },       // 後壁 Z=+hW → -Z
+    { vi:[0,1,5,4], n:[1, 0,0], uv:[[0,uD],[uW,uD],[uW,0],[0,0]] },       // 左端 X=-hL → +X
+    { vi:[2,6,7,3], n:[-1,0,0], uv:[[uW,uD],[uW,0],[0,0],[0,uD]] },       // 右端 X=+hL → -X
+  ];
+
+  const counts=[], indices=[], norms=[], uvs=[];
+  for (const f of faceDefs) {
+    counts.push(4);
+    indices.push(...f.vi);
+    for (let k=0;k<4;k++) norms.push(f.n);
+    for (const uv of f.uv) uvs.push(uv);
+  }
+
+  return {
+    pStr: pts.map(([x,y,z])=>`(${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)})`).join(', '),
+    cStr: counts.join(', '),
+    iStr: indices.join(', '),
+    nStr: norms.map(([x,y,z])=>`(${x.toFixed(6)}, ${y.toFixed(6)}, ${z.toFixed(6)})`).join(', '),
+    uvStr: uvs.map(([u,v])=>`(${u.toFixed(4)}, ${v.toFixed(4)})`).join(', '),
+  };
+}
+
+// ── USDA 生成 ─────────────────────────────────────────────────────────────
 function generateUSDA(od, len) {
   const wall   = calcWall(od);
   const outerR = (od / 2) / 10;
   const innerR = (od / 2 - wall) / 10;
   const H      = len / 10;
-  const { pStr, cStr, iStr, nStr } = buildTubeMesh(outerR, innerR, H, 32);
+  const tube   = buildTubeMesh(outerR, innerR, H, 32);
 
-  return `#usda 1.0
+  const pipeMat = `
+    def Material "PipeMat"
+    {
+        token outputs:surface.connect = </Root/PipeMat/S.outputs:surface>
+        def Shader "S"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.58, 0.58, 0.64)
+            float inputs:metallic = 0.0
+            float inputs:roughness = 1.0
+            float inputs:ior = 1.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }`;
+
+  const waterMat = `
+    def Material "WaterMat"
+    {
+        token outputs:surface.connect = </Root/WaterMat/S.outputs:surface>
+        def Shader "S"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.25, 0.55, 0.88)
+            float inputs:metallic = 0.0
+            float inputs:roughness = 1.0
+            float inputs:ior = 1.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }`;
+
+  if (!isUG) {
+    // ── 地上モード ──
+    return `#usda 1.0
 (
     defaultPrim = "Root"
     metersPerUnit = 0.01
@@ -302,12 +467,89 @@ def Xform "Root"
 
         def Mesh "Shell"
         {
-            int[] faceVertexCounts = [${cStr}]
-            int[] faceVertexIndices = [${iStr}]
-            normal3f[] normals = [${nStr}] (
+            int[] faceVertexCounts = [${tube.cStr}]
+            int[] faceVertexIndices = [${tube.iStr}]
+            normal3f[] normals = [${tube.nStr}] (
                 interpolation = "faceVarying"
             )
-            point3f[] points = [${pStr}]
+            point3f[] points = [${tube.pStr}]
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </Root/PipeMat>
+        }
+
+        def Cylinder "Water"
+        {
+            double height = ${H.toFixed(4)}
+            double radius = ${innerR.toFixed(4)}
+            uniform token axis = "X"
+            rel material:binding = </Root/WaterMat>
+        }
+    }
+${pipeMat}
+${waterMat}
+}`;
+  }
+
+  // ── 地中モード ──
+  const burial    = parseInt(burialSlider.value);
+  const trenchW   = parseInt(widthSlider.value);
+  const burialCm  = burial / 10;
+  const trenchWCm = trenchW / 10;
+  const trenchDCm = (burial + od) / 10;   // 埋設深さ + 外径
+  const pipeY     = -(burialCm + outerR);  // 管中心のY座標
+  const trench    = buildTrenchMesh(H, trenchWCm, trenchDCm);
+
+  const dirtMat = `
+    def Material "DirtMat"
+    {
+        token outputs:surface.connect = </Root/DirtMat/S.outputs:surface>
+        def Shader "S"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor.connect = </Root/DirtMat/Tex.outputs:rgb>
+            float inputs:roughness = 1.0
+            float inputs:ior = 1.0
+            token outputs:surface
+        }
+        def Shader "Tex"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @dirt.png@
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float2 inputs:st.connect = </Root/DirtMat/UV.outputs:result>
+            float3 outputs:rgb
+        }
+        def Shader "UV"
+        {
+            uniform token info:id = "UsdPrimvarReader_float2"
+            token inputs:varname = "st"
+            float2 outputs:result
+        }
+    }`;
+
+  return `#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 0.01
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Xform "PipeGroup"
+    {
+        double3 xformOp:translate = (0, ${pipeY.toFixed(4)}, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+
+        def Mesh "Shell"
+        {
+            int[] faceVertexCounts = [${tube.cStr}]
+            int[] faceVertexIndices = [${tube.iStr}]
+            normal3f[] normals = [${tube.nStr}] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [${tube.pStr}]
             uniform token subdivisionScheme = "none"
             rel material:binding = </Root/PipeMat>
         }
@@ -321,96 +563,61 @@ def Xform "Root"
         }
     }
 
-    def Material "PipeMat"
+    def Mesh "Trench"
     {
-        token outputs:surface.connect = </Root/PipeMat/S.outputs:surface>
-        def Shader "S"
-        {
-            uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor = (0.58, 0.58, 0.64)
-            float inputs:metallic = 0.0
-            float inputs:roughness = 1.0
-            float inputs:ior = 1.0
-            float inputs:opacity = 1.0
-            token outputs:surface
-        }
+        int[] faceVertexCounts = [${trench.cStr}]
+        int[] faceVertexIndices = [${trench.iStr}]
+        normal3f[] normals = [${trench.nStr}] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [${trench.pStr}]
+        texCoord2f[] primvars:st = [${trench.uvStr}] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        rel material:binding = </Root/DirtMat>
     }
-
-    def Material "WaterMat"
-    {
-        token outputs:surface.connect = </Root/WaterMat/S.outputs:surface>
-        def Shader "S"
-        {
-            uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor = (0.25, 0.55, 0.88)
-            float inputs:metallic = 0.0
-            float inputs:roughness = 1.0
-            float inputs:ior = 1.0
-            float inputs:opacity = 1.0
-            token outputs:surface
-        }
-    }
+${pipeMat}
+${waterMat}
+${dirtMat}
 }`;
 }
 
-// スライダー表示とSVG断面図を更新
-function updateUI() {
-  const od   = parseInt(odSlider.value);
-  const len  = parseInt(lenSlider.value);
-  const wall = calcWall(od);
-  const id   = parseFloat((od - wall * 2).toFixed(1));
-
-  document.getElementById('od-val').textContent   = od;
-  document.getElementById('len-val').textContent  = len;
-  document.getElementById('wall-val').textContent = wall;
-  document.getElementById('id-val').textContent   = id;
-
-  // スライダーグラデーション更新
-  const setPct = (el, min, max, val) =>
-    el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
-  setPct(odSlider,  10, 2000, od);
-  setPct(lenSlider, 100, 3000, len);
-
-  // SVG断面更新（外径は常に表示半径65pxに正規化、肉厚を比率で表示）
-  const R      = 65;
-  const wallPx = Math.max(4, (wall / (od / 2)) * R);
-  const waterR = Math.max(2, R - wallPx);
-  document.getElementById('svg-pipe').setAttribute('r', R - wallPx / 2);
-  document.getElementById('svg-pipe').setAttribute('stroke-width', wallPx);
-  document.getElementById('svg-water').setAttribute('r', waterR);
-}
-
-// USDZ blob URLを生成してar-linkのhrefを更新
+// ── USDZ 生成 ─────────────────────────────────────────────────────────────
 let currentBlobUrl = null;
 let regenTimer     = null;
 
 async function regenerateUSDZ() {
   if (typeof JSZip === 'undefined') {
-    statusEl.textContent = 'JSZipの読み込みに失敗しました。ネット接続を確認してください。';
+    statusEl.textContent = 'JSZipの読み込みに失敗しました。';
     return;
   }
-
   const od  = parseInt(odSlider.value);
   const len = parseInt(lenSlider.value);
-
   try {
     const usda = generateUSDA(od, len);
     const zip  = new JSZip();
-    zip.file("pipe.usda", usda, { compression: "STORE" });
+    zip.file('pipe.usda', usda, { compression: 'STORE' });
 
-    const buf  = await zip.generateAsync({ type: "arraybuffer", compression: "STORE" });
-    const blob = new Blob([buf], { type: "model/vnd.usdz+zip" });
+    if (isUG) {
+      const dirtBytes = await buildDirtTexture();
+      zip.file('dirt.png', dirtBytes, { compression: 'STORE' });
+    }
+
+    const buf  = await zip.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+    const blob = new Blob([buf], { type: 'model/vnd.usdz+zip' });
 
     const prev = currentBlobUrl;
     currentBlobUrl = URL.createObjectURL(blob);
     arLink.href = currentBlobUrl;
-
     if (prev) setTimeout(() => URL.revokeObjectURL(prev), 2000);
 
     arLink.classList.remove('loading');
     btnLabel.textContent = 'ARで見る';
-    statusEl.textContent = `外径 ${od}mm × 長さ ${len}mm のパイプを準備しました`;
-  } catch (e) {
+    statusEl.textContent = isUG
+      ? `埋設深さ ${burialSlider.value}mm / 掘削幅 ${widthSlider.value}mm`
+      : `外径 ${od}mm × 長さ ${len}mm`;
+  } catch(e) {
     statusEl.textContent = 'エラー: ' + e.message;
   }
 }
@@ -422,10 +629,12 @@ function scheduleRegen() {
   regenTimer = setTimeout(regenerateUSDZ, 350);
 }
 
-odSlider.addEventListener('input',  () => { updateUI(); scheduleRegen(); });
-lenSlider.addEventListener('input', () => { updateUI(); scheduleRegen(); });
+// ── イベント登録 ──────────────────────────────────────────────────────────
+odSlider.addEventListener('input',     () => { updateUI(); scheduleRegen(); });
+lenSlider.addEventListener('input',    () => { updateUI(); scheduleRegen(); });
+burialSlider.addEventListener('input', () => { updateUI(); scheduleRegen(); });
+widthSlider.addEventListener('input',  () => { updateUI(); scheduleRegen(); });
 
-// 初期化
 updateUI();
 regenerateUSDZ();
 </script>
