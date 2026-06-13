@@ -89,6 +89,25 @@
       text-align: center; border: 1px solid rgba(255,255,255,0.10); width: 100%;
     }
     #btn-row { display: flex; gap: 10px; }
+    #fov-row {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,0,0,0.58);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 22px; padding: 8px 14px;
+      width: 100%;
+    }
+    #fov-row label { color: #fff; font-size: 0.8rem; white-space: nowrap; }
+    #fov-slider {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.3); outline: none;
+    }
+    #fov-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
+      border-radius: 50%; background: #fff; cursor: pointer;
+    }
+    #fov-val { color: #fff; font-size: 0.8rem; min-width: 36px; text-align: right; }
     .ar-btn {
       background: rgba(0,0,0,0.58);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -121,6 +140,11 @@
   <div id="crosshair"></div>
   <div id="bottom-panel">
     <div id="status">タップしてキューブを配置</div>
+    <div id="fov-row">
+      <label>FOV</label>
+      <input id="fov-slider" type="range" min="40" max="100" value="70" oninput="onFovChange(this.value)">
+      <span id="fov-val">70°</span>
+    </div>
     <div id="btn-row">
       <button class="ar-btn hidden" id="btn-rl"    onclick="rotateCube(-1)">← 回転</button>
       <button class="ar-btn hidden" id="btn-rr"    onclick="rotateCube( 1)">回転 →</button>
@@ -496,6 +520,13 @@ function resetCube() {
   cubeRotY = 0; cubeGroup.rotation.y = 0;
   showCubeButtons(false);
   setStatus('床に向けてタップでキューブを配置');
+}
+function onFovChange(val) {
+  document.getElementById('fov-val').textContent = val + '°';
+  if (camera) {
+    camera.fov = Number(val);
+    camera.updateProjectionMatrix();
+  }
 }
 function onResize() {
   if (!renderer || !camera) return;
