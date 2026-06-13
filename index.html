@@ -179,7 +179,7 @@
       <span class="param-name">外径</span>
       <span><span class="param-value" id="od-val">50</span><span class="param-unit"> mm</span></span>
     </div>
-    <input type="range" id="od" min="13" max="2000" value="50" step="5">
+    <input type="range" id="od" min="10" max="2000" value="100" step="5">
   </div>
 
   <!-- Length -->
@@ -281,9 +281,9 @@ def Xform "Root"
         {
             uniform token info:id = "UsdPreviewSurface"
             color3f inputs:diffuseColor = (0.58, 0.58, 0.64)
-            float inputs:metallic = 0.2
-            float inputs:roughness = 0.45
-            float inputs:opacity = 0.70
+            float inputs:metallic = 0.0
+            float inputs:roughness = 1.0
+            float inputs:opacity = 1.0
             token outputs:surface
         }
     }
@@ -296,7 +296,7 @@ def Xform "Root"
             uniform token info:id = "UsdPreviewSurface"
             color3f inputs:diffuseColor = (0.25, 0.55, 0.88)
             float inputs:metallic = 0.0
-            float inputs:roughness = 0.80
+            float inputs:roughness = 1.0
             float inputs:opacity = 1.0
             token outputs:surface
         }
@@ -319,7 +319,7 @@ function updateUI() {
   // スライダーグラデーション更新
   const setPct = (el, min, max, val) =>
     el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
-  setPct(odSlider,  13, 2000, od);
+  setPct(odSlider,  10, 2000, od);
   setPct(lenSlider, 100, 3000, len);
 
   // SVG断面更新（外径は常に表示半径65pxに正規化、肉厚を比率で表示）

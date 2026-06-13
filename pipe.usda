@@ -36,9 +36,9 @@ def Xform "Root"
         {
             uniform token info:id = "UsdPreviewSurface"
             color3f inputs:diffuseColor = (0.58, 0.58, 0.64)
-            float inputs:metallic = 0.2
-            float inputs:roughness = 0.45
-            float inputs:opacity = 0.70
+            float inputs:metallic = 0.0
+            float inputs:roughness = 1.0
+            float inputs:opacity = 1.0
             token outputs:surface
         }
     }
@@ -51,7 +51,7 @@ def Xform "Root"
             uniform token info:id = "UsdPreviewSurface"
             color3f inputs:diffuseColor = (0.25, 0.55, 0.88)
             float inputs:metallic = 0.0
-            float inputs:roughness = 0.80
+            float inputs:roughness = 1.0
             float inputs:opacity = 1.0
             token outputs:surface
         }
