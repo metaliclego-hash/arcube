@@ -308,7 +308,7 @@ function initThree() {
   scene  = new THREE.Scene();
   var W  = window.innerWidth, H = window.innerHeight;
 
-  camera = new THREE.PerspectiveCamera(60, W / H, 0.01, 50);
+  camera = new THREE.PerspectiveCamera(70, W / H, 0.01, 50); /* iPad 広角カメラの実FOVに合わせる */
   camera.position.set(0, 1.3, 0);
   /* 初期向き: 少し前下方向（ジャイロが来るまでの仮の向き） */
   camera.lookAt(0, 0, -1.5);
@@ -392,11 +392,13 @@ function applyCameraOrientation() {
   _qTmp.multiply(_qZee.setFromAxisAngle(_zee, -screenOrient)); // 右から掛ける
 
   if (!_orientInitialized) {
-    /* 最初のフレームはスナップ（ワープ防止） */
     _smoothQ.copy(_qTmp);
     _orientInitialized = true;
   } else {
-    _smoothQ.slerp(_qTmp, 0.15); /* SLERP で微小ジッター除去 */
+    /* ラグをなくすため係数を 1.0 に近づける。
+       iOS の DeviceOrientation はOS側で既にフィルタ済みなので
+       追加スムージングによるラグの方が問題になる。 */
+    _smoothQ.slerp(_qTmp, 0.9);
   }
   camera.quaternion.copy(_smoothQ);
 }
