@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AR Cube 500mm</title>
+
+  <!-- iOS AR Quick Look のトリガーに必要 -->
+  <script async src="https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three":          "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/":  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    }
+
+    /* カメラ映像（背景） */
+    #camera {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; z-index: 0;
+    }
+
+    /* Three.js プレビュー */
+    #preview {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1; touch-action: none;
+    }
+
+    /* model-viewer は DOM に存在させるが画面に出さない */
+    model-viewer {
+      position: fixed; width: 1px; height: 1px;
+      bottom: -2px; right: -2px;
+      opacity: 0; pointer-events: none;
+    }
+
+    /* ── ボトムパネル ── */
+    #panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      background: rgba(8, 10, 22, 0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 20px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+
+    #cube-label {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.4px;
+    }
+
+    /*
+      ★ AR トリガー ★
+      <a rel="ar"> をユーザーが直接タップ → iOS Safari が ARKit で AR Quick Look を起動。
+      href に GLB の blob URL をセットすることで床検出・実寸配置が動く。
+      - JavaScript から .click() では起動しない（iOS のセキュリティ制限）
+      - iOS AR Quick Look は最初の子 <img> をサムネとして使うため必須
+    */
+    #ar-link {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; max-width: 360px;
+      padding: 16px;
+      background: #007AFF; color: #fff;
+      border-radius: 14px;
+      font-size: 17px; font-weight: 600;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      transition: opacity 0.1s;
+    }
+    #ar-link:active { opacity: 0.75; }
+
+    /* GLB 未生成のうちはタップ無効 */
+    #ar-link[data-ready="false"] {
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.30);
+      pointer-events: none;
+    }
+
+    /* iOS AR Quick Look 必須の非表示サムネ */
+    #ar-thumb {
+      position: absolute; left: 0; top: 0;
+      width: 1px; height: 1px; opacity: 0.01;
+      pointer-events: none;
+    }
+
+    #status {
+      font-size: 12px; color: rgba(255,255,255,0.35);
+      text-align: center; min-height: 16px;
+    }
+
+    .spin { display: inline-block; }
+    .spin::after {
+      content: '';
+      display: inline-block; width: 10px; height: 10px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 6px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- カメラ映像（背景） -->
+<video id="camera" autoplay playsinline muted></video>
+
+<!-- Three.js プレビュー -->
+<canvas id="preview"></canvas>
+
+<!-- 非表示の model-viewer（iOS 仕様上の要件） -->
+<model-viewer id="mv" ar ar-modes="quick-look" ar-scale="fixed" camera-controls></model-viewer>
+
+<!-- UI パネル -->
+<div id="panel">
+  <div id="cube-label">500mm × 500mm × 500mm の立方体</div>
+
+  <a id="ar-link" rel="ar" href="#" data-ready="false">
+    <!--
+      iOS AR Quick Look は <a rel="ar"> の最初の子 <img> をサムネとして参照する。
+      存在しないと Quick Look が起動しない場合があるため 2×2 の透明 PNG を埋め込む。
+    -->
+    <img id="ar-thumb"
+         src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAADklEQVQI12P4z8BQDwAEgAF/QualIQAAAABJRU5ErkJggg=="
+         alt="" width="2" height="2">
+    📦 AR で実寸配置
+  </a>
+
+  <div id="status"><span class="spin">準備中</span></div>
+</div>
+
+<script type="module">
+import * as THREE       from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const SIZE = 0.5; // 500 mm = 0.5 m（GLB はメートル単位）
+
+/* ══════════════════════════════════════════════════════
+   Three.js プレビュー（カメラ映像の上に透過表示）
+══════════════════════════════════════════════════════ */
+const canvas   = document.getElementById('preview');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene  = new THREE.Scene();
+const cam3d  = new THREE.PerspectiveCamera(55, 1, 0.01, 100);
+cam3d.position.set(0.7, 0.55, 0.9);
+
+/* 照明 */
+scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
+sun.position.set(2, 5, 3);
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
+
+/* 床グリッド */
+const grid = new THREE.GridHelper(3, 6, 0xffffff, 0xffffff);
+grid.material.opacity = 0.09; grid.material.transparent = true;
+scene.add(grid);
+
+/* キューブ（プレビュー用） */
+const cubeGeo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+const cubeMesh = new THREE.Mesh(cubeGeo, new THREE.MeshStandardMaterial({
+  color: 0x1565C0, roughness: 0.35, metalness: 0.2,
+  transparent: true, opacity: 0.88,
+}));
+cubeMesh.position.y = SIZE / 2;
+scene.add(cubeMesh);
+
+/* エッジライン */
+const edgeMesh = new THREE.LineSegments(
+  new THREE.EdgesGeometry(cubeGeo),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
+);
+edgeMesh.position.y = SIZE / 2;
+scene.add(edgeMesh);
+
+/* 影ディスク */
+const discGeo = new THREE.CircleGeometry(SIZE * 0.56, 32);
+discGeo.rotateX(-Math.PI / 2);
+scene.add(new THREE.Mesh(discGeo,
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+));
+
+/* OrbitControls（ドラッグで360°確認） */
+const controls = new OrbitControls(cam3d, canvas);
+controls.target.set(0, SIZE / 2, 0);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.07;
+controls.minDistance     = 0.3;
+controls.maxDistance     = 3.0;
+controls.update();
+
+function resize() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  cam3d.aspect = window.innerWidth / window.innerHeight;
+  cam3d.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  renderer.render(scene, cam3d);
+})();
+
+/* コントロールパネルのタッチを OrbitControls に漏らさない */
+document.getElementById('panel').addEventListener('touchstart', e => e.stopPropagation(), { passive: false });
+document.getElementById('panel').addEventListener('mousedown',  e => e.stopPropagation());
+
+/* ══════════════════════════════════════════════════════
+   カメラ起動
+══════════════════════════════════════════════════════ */
+async function startCamera() {
+  try {
+    document.getElementById('camera').srcObject =
+      await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, audio: false,
+      });
+  } catch (_) {
+    document.getElementById('camera').style.display = 'none';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   GLB 生成 → blob URL → <a rel="ar"> にセット
+
+   AR Quick Look 起動の仕組み:
+   1. Three.js で 500mm キューブを作る（スケール = 0.001、GLB はメートル単位）
+   2. GLTFExporter でバイナリ GLB に変換
+   3. Blob → URL.createObjectURL() で blob:// URL を作成
+   4. <a rel="ar"> の href に blob URL をセット
+   5. ユーザーが直接タップ → iOS Safari が ARKit を呼び出して
+      AR Quick Look を起動（床検出・実寸表示を自動で行う）
+══════════════════════════════════════════════════════ */
+const arLink   = document.getElementById('ar-link');
+const statusEl = document.getElementById('status');
+let blobURL    = null;
+
+async function generateGLB() {
+  statusEl.innerHTML = '<span class="spin">GLB 生成中</span>';
+
+  try {
+    /* AR 用シーン（メートル単位） */
+    const arScene = new THREE.Scene();
+
+    /* キューブ本体 */
+    const geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: 0x1565C0, roughness: 0.35, metalness: 0.2,
+    }));
+    mesh.position.y = SIZE / 2; /* 底面を y=0（床面）に合わせる */
+    arScene.add(mesh);
+
+    /* エッジライン（GLB でも表示される） */
+    arScene.add(Object.assign(
+      new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0xffffff })
+      ),
+      { position: new THREE.Vector3(0, SIZE / 2, 0) }
+    ));
+
+    /* GLB バイナリに変換 */
+    const raw = await new Promise((resolve, reject) =>
+      new GLTFExporter().parse(arScene, resolve, reject, { binary: true })
+    );
+    const buffer = raw instanceof ArrayBuffer ? raw : new Uint8Array(raw).buffer;
+
+    /* 古い blob を解放して新規作成 */
+    if (blobURL) URL.revokeObjectURL(blobURL);
+    blobURL = URL.createObjectURL(new Blob([buffer], { type: 'model/gltf-binary' }));
+
+    /* ★ <a rel="ar"> に blob URL をセット → ユーザーのタップで AR 起動 ★ */
+    arLink.href          = blobURL;
+    arLink.dataset.ready = 'true';
+
+    /* model-viewer にも渡す（仕様上の要素） */
+    document.getElementById('mv').src = blobURL;
+
+    statusEl.textContent = '準備完了 ✓  ボタンをタップして AR に配置';
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+    console.error(e);
+  }
+}
+
+arLink.addEventListener('click', e => {
+  if (arLink.dataset.ready !== 'true') {
+    e.preventDefault();
+    return;
+  }
+  /* preventDefault しない → iOS が rel="ar" を処理して AR Quick Look を起動 */
+  statusEl.textContent = 'AR Quick Look 起動中...';
+});
+
+/* ══════════════════════════════════════════════════════
+   起動
+══════════════════════════════════════════════════════ */
+(async () => {
+  await startCamera();
+  await generateGLB();
+})();
+</script>
+</body>
+</html>
