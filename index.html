@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR 立方体テスト</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #0f0f1a;
+      color: #e0e8ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(100, 160, 255, 0.3);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .cube-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #64a0ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #8899cc;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .ar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, #3a7bd5, #6c5ce7);
+      color: white;
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      box-shadow: 0 4px 20px rgba(100, 140, 255, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ar-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 10px rgba(100, 140, 255, 0.3);
+    }
+
+    .ar-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .info {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: #556;
+      line-height: 1.7;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(100, 160, 255, 0.15);
+      border: 1px solid rgba(100, 160, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.75rem;
+      color: #88aaff;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Cube SVG preview -->
+    <svg class="cube-icon" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="face-top" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#64a0ff"/>
+          <stop offset="100%" stop-color="#a78bfa"/>
+        </linearGradient>
+        <linearGradient id="face-left" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#2255cc"/>
+          <stop offset="100%" stop-color="#3a7bd5"/>
+        </linearGradient>
+        <linearGradient id="face-right" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4466ee"/>
+          <stop offset="100%" stop-color="#6c5ce7"/>
+        </linearGradient>
+      </defs>
+      <!-- top face -->
+      <polygon points="60,15 100,35 60,55 20,35" fill="url(#face-top)" opacity="0.95"/>
+      <!-- left face -->
+      <polygon points="20,35 60,55 60,95 20,75" fill="url(#face-left)" opacity="0.9"/>
+      <!-- right face -->
+      <polygon points="60,55 100,35 100,75 60,95" fill="url(#face-right)" opacity="0.85"/>
+      <!-- edges -->
+      <polygon points="60,15 100,35 60,55 20,35" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      <polygon points="20,35 60,55 60,95 20,75" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      <polygon points="60,55 100,35 100,75 60,95" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    </svg>
+
+    <h1>AR 立方体テスト</h1>
+    <p class="subtitle">
+      500mm × 500mm × 500mm の立方体を<br>現実空間に配置します
+    </p>
+
+    <!-- ARQuickLook trigger: rel="ar" が必須 -->
+    <a class="ar-btn" rel="ar" href="cube.usdz">
+      <!-- img要素はARQuickLookのトリガーとして必要（iOS互換） -->
+      <img src="" alt="" style="display:none" width="0" height="0">
+      <svg class="ar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      ARで見る
+    </a>
+
+    <div class="info">
+      iPadでこのページを開き、「ARで見る」をタップしてください。<br>
+      カメラが起動し、床や机の上に立方体を置けます。
+    </div>
+
+    <div class="badge">Safari / Chrome 対応 · iOS 26+</div>
+  </div>
+</body>
+</html>
