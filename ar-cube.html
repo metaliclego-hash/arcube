@@ -121,7 +121,7 @@
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 28px; height: 28px;
-      pointer-events: none; opacity: 0.4;
+      pointer-events: none; opacity: 0.35;
     }
     #crosshair::before, #crosshair::after {
       content: ''; position: absolute; background: #fff;
@@ -154,7 +154,7 @@
 <div id="start-screen">
   <div class="logo">📦</div>
   <h1>AR Cube 500mm</h1>
-  <p class="subtitle">カメラ映像に 500mm の立方体を重ねて表示します。<br>WebXR 不要・Safari 対応</p>
+  <p class="subtitle">カメラ映像に 500mm の立方体を重ねて表示します。<br>WebXR 不要・Safari / Chrome 対応</p>
   <div class="info-box">
     <b>使い方</b><br>
     ① カメラを床に向ける<br>
@@ -190,8 +190,7 @@
 'use strict';
 
 /* ----------------------------------------------------------------
-   グローバル変数
-   ※ THREE.* を使うものはすべて関数の中でのみ初期化する
+   グローバル変数 — THREE.* はすべて initThree() の中でのみ生成
 ---------------------------------------------------------------- */
 var renderer, scene, camera, animId;
 var cubeGroup;
@@ -203,15 +202,6 @@ var isDragging     = false;
 var lastTouch      = null;
 var touchStartPos  = null;
 var touchStartTime = 0;
-
-var orientGranted = false;
-var orientAlpha = 0, orientBeta = 90, orientGamma = 0;
-
-/* Three.js オブジェクト — initThree() の中で生成する */
-var smoothQ = null;
-var _euler  = null;
-var _quat   = null;
-var _qBase  = null;
 
 var TAP_MS = 250;
 var TAP_PX = 12;
@@ -252,19 +242,7 @@ async function startAR() {
     return;
   }
 
-  /* ② DeviceOrientation 許可（iOS 13+ はユーザー操作直後に呼ぶ必要がある） */
-  orientGranted = false;
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      var res = await DeviceOrientationEvent.requestPermission();
-      orientGranted = (res === 'granted');
-    } catch (_) { /* 拒否されても続行 */ }
-  } else {
-    orientGranted = true;
-  }
-
-  /* ③ カメラ取得 */
+  /* ② カメラ取得 */
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showErr('カメラ API が使えません。\nHTTPS で開いているか確認してください。');
     return;
@@ -283,12 +261,7 @@ async function startAR() {
   video.srcObject = cameraStream;
   try { await video.play(); } catch (_) {}
 
-  /* ④ ジャイロ登録 */
-  if (orientGranted) {
-    window.addEventListener('deviceorientation', onOrientation, true);
-  }
-
-  /* ⑤ Three.js 初期化 */
+  /* ③ Three.js 初期化 */
   try {
     initThree();
   } catch (e) {
@@ -296,7 +269,7 @@ async function startAR() {
     return;
   }
 
-  /* ⑥ タッチイベント */
+  /* ④ タッチイベント */
   var canvas = document.getElementById('three-canvas');
   canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
   canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
@@ -304,7 +277,7 @@ async function startAR() {
   canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
   window.addEventListener('resize', onResize);
 
-  /* ⑦ 画面切り替え */
+  /* ⑤ 画面切り替え */
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('ui').style.display = 'block';
 
@@ -326,7 +299,6 @@ function stopAR() {
   }
   document.getElementById('bg-video').srcObject = null;
 
-  window.removeEventListener('deviceorientation', onOrientation, true);
   window.removeEventListener('resize', onResize);
 
   var canvas = document.getElementById('three-canvas');
@@ -337,8 +309,6 @@ function stopAR() {
 
   cubeVisible = false;
   cubeRotY    = 0;
-  smoothQ     = null;
-  _euler = _quat = _qBase = null;
   showCubeButtons(false);
 
   document.getElementById('ui').style.display = 'none';
@@ -350,24 +320,31 @@ function stopAR() {
 }
 
 /* ----------------------------------------------------------------
-   initThree  ※ ここで初めて THREE.* を使う
+   initThree
+   カメラは固定。ジャイロは使わない。
+   → Three.js シーンが動かないので、キューブが画面に安定して表示される
 ---------------------------------------------------------------- */
 function initThree() {
-  smoothQ = new THREE.Quaternion();
+  scene = new THREE.Scene();
 
-  scene  = new THREE.Scene();
-  var W  = window.innerWidth;
-  var H  = window.innerHeight;
+  var W = window.innerWidth;
+  var H = window.innerHeight;
 
+  /*
+   * カメラ設定
+   * 高さ 1.3m の目線から、床の 1.5m 先を見下ろす角度に固定。
+   * iPad を床に向けたときの自然な視点に合わせている。
+   * ジャイロで動かさないのでキューブが画面内で動かない。
+   */
   camera = new THREE.PerspectiveCamera(60, W / H, 0.01, 50);
-  camera.position.set(0, 1.2, 0);
+  camera.position.set(0, 1.3, 0);
   camera.lookAt(0, 0, -1.5);
 
   var canvas = document.getElementById('three-canvas');
   renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0); /* 完全透明 → 背後の映像が見える */
+  renderer.setClearColor(0x000000, 0); /* 透明 → 背後のカメラ映像が見える */
 
   /* 照明 */
   scene.add(new THREE.AmbientLight(0xffffff, 1.4));
@@ -376,9 +353,9 @@ function initThree() {
   scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
 
-  /* 床グリッド */
+  /* 床グリッド（奥行き感と床面の基準として表示） */
   var grid = new THREE.GridHelper(10, 20, 0xffffff, 0xffffff);
-  grid.material.opacity = 0.10;
+  grid.material.opacity = 0.12;
   grid.material.transparent = true;
   scene.add(grid);
 
@@ -400,60 +377,23 @@ function initThree() {
     new THREE.LineBasicMaterial({ color: 0xffffff })
   ));
 
-  /* 影ディスク */
+  /* 足元の影ディスク */
   var discGeo = new THREE.CircleGeometry(0.28, 32);
   discGeo.rotateX(-Math.PI / 2);
   var disc = new THREE.Mesh(discGeo,
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.20 })
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 })
   );
   disc.position.y = -SIZE / 2 + 0.001;
   cubeGroup.add(disc);
 }
 
 /* ----------------------------------------------------------------
-   レンダーループ
+   レンダーループ（カメラは動かさない）
 ---------------------------------------------------------------- */
 function animate() {
   animId = requestAnimationFrame(animate);
   if (!renderer) return;
-  applyCameraOrientation();
   renderer.render(scene, camera);
-}
-
-/* ----------------------------------------------------------------
-   DeviceOrientation → カメラ回転
----------------------------------------------------------------- */
-function onOrientation(e) {
-  if (e.alpha != null) orientAlpha = e.alpha;
-  if (e.beta  != null) orientBeta  = e.beta;
-  if (e.gamma != null) orientGamma = e.gamma;
-}
-
-function applyCameraOrientation() {
-  if (!orientGranted || !smoothQ || !camera) return;
-
-  if (!_euler) {
-    _euler = new THREE.Euler();
-    _quat  = new THREE.Quaternion();
-    _qBase = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
-  }
-
-  var screenAngle = ((window.orientation || 0) * Math.PI) / 180;
-
-  _euler.set(
-    THREE.MathUtils.degToRad(orientBeta),
-    THREE.MathUtils.degToRad(orientAlpha),
-    -THREE.MathUtils.degToRad(orientGamma),
-    'YXZ'
-  );
-  _quat.setFromEuler(_euler);
-
-  var qScreen = new THREE.Quaternion(
-    0, 0, -Math.sin(screenAngle / 2), Math.cos(screenAngle / 2)
-  );
-  _quat.premultiply(_qBase).multiply(qScreen);
-  smoothQ.slerp(_quat, 0.12);
-  camera.quaternion.copy(smoothQ);
 }
 
 /* ----------------------------------------------------------------
@@ -530,7 +470,7 @@ function placeCubeAtScreen(sx, sy) {
 }
 
 /* ----------------------------------------------------------------
-   スクリーンの移動量 → ワールド XZ 変換
+   スクリーンのドラッグ量 → ワールド XZ 移動量
 ---------------------------------------------------------------- */
 function screenDeltaToWorld(dsx, dsy) {
   if (!camera || !cubeGroup) return { x: 0, z: 0 };
