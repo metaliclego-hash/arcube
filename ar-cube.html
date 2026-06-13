@@ -8,7 +8,6 @@
   <title>AR Cube 500mm</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
       background: #000;
       font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
@@ -18,29 +17,24 @@
       user-select: none;
     }
 
-    /* Camera background */
     #bg-video {
       position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
       z-index: 0;
     }
-
-    /* Three.js canvas on top — transparent */
     #three-canvas {
       position: fixed;
       inset: 0;
       z-index: 10;
     }
-
-    /* UI layer above canvas */
     #ui {
       position: fixed;
       inset: 0;
       z-index: 20;
       pointer-events: none;
+      display: none;
     }
 
     /* ── Start Screen ── */
@@ -57,42 +51,36 @@
       color: #e6edf3;
     }
     .logo { font-size: 4rem; margin-bottom: 1rem; }
-    #start-screen h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
     .subtitle {
-      font-size: 0.9rem;
-      color: #8b949e;
-      text-align: center;
-      line-height: 1.7;
-      margin-bottom: 1.8rem;
+      font-size: 0.9rem; color: #8b949e;
+      text-align: center; line-height: 1.7; margin-bottom: 1.8rem;
     }
     .info-box {
-      width: 100%;
-      max-width: 360px;
+      width: 100%; max-width: 360px;
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 14px;
       padding: 1rem 1.2rem;
       margin-bottom: 1.5rem;
-      font-size: 0.82rem;
-      color: #8b949e;
-      line-height: 1.7;
+      font-size: 0.82rem; color: #8b949e; line-height: 1.8;
     }
     .info-box b { color: #e6edf3; }
     #start-btn {
-      width: 100%;
-      max-width: 360px;
-      background: #238636;
-      color: #fff;
-      border: none;
-      padding: 0.9rem;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
+      width: 100%; max-width: 360px;
+      background: #238636; color: #fff;
+      border: none; padding: 0.9rem;
+      border-radius: 12px; font-size: 1rem; font-weight: 600;
       cursor: pointer;
-      pointer-events: auto;
     }
-    #start-btn:active { background: #196127; }
-    #err { margin-top: 1rem; font-size: 0.82rem; color: #f85149; text-align: center; }
+    #start-btn:disabled { background: #484f58; cursor: not-allowed; }
+    #start-btn:not(:disabled):active { background: #196127; }
+    #err {
+      margin-top: 1rem; font-size: 0.82rem;
+      color: #f85149; text-align: center;
+      max-width: 360px; line-height: 1.5;
+      white-space: pre-wrap;
+    }
 
     /* ── AR UI ── */
     #top-bar {
@@ -107,46 +95,32 @@
     }
     .badge {
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #fff;
-      padding: 7px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; padding: 7px 14px;
+      border-radius: 20px; font-size: 0.8rem;
       border: 1px solid rgba(255,255,255,0.12);
     }
     #exit-btn {
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.12);
-      padding: 7px 16px;
-      border-radius: 20px;
-      font-size: 0.82rem;
-      cursor: pointer;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; border: 1px solid rgba(255,255,255,0.12);
+      padding: 7px 16px; border-radius: 20px;
+      font-size: 0.82rem; cursor: pointer;
     }
     #bottom-panel {
       position: absolute;
       bottom: env(safe-area-inset-bottom, 28px);
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
       pointer-events: auto;
-      width: 90%;
-      max-width: 400px;
+      width: 90%; max-width: 400px;
     }
     #status {
       background: rgba(0,0,0,0.60);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 22px;
-      font-size: 0.88rem;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; padding: 10px 20px;
+      border-radius: 22px; font-size: 0.88rem;
       text-align: center;
       border: 1px solid rgba(255,255,255,0.10);
       width: 100%;
@@ -154,48 +128,33 @@
     #btn-row { display: flex; gap: 10px; }
     .ar-btn {
       background: rgba(0,0,0,0.58);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.18);
-      padding: 9px 18px;
-      border-radius: 22px;
-      font-size: 0.85rem;
-      cursor: pointer;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; border: 1px solid rgba(255,255,255,0.18);
+      padding: 9px 18px; border-radius: 22px;
+      font-size: 0.85rem; cursor: pointer;
     }
     .ar-btn:active { background: rgba(255,255,255,0.18); }
     .hidden { display: none !important; }
 
-    /* Crosshair */
     #crosshair {
-      position: absolute;
-      top: 50%;
-      left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 30px;
-      height: 30px;
-      pointer-events: none;
-      opacity: 0.5;
+      width: 28px; height: 28px;
+      pointer-events: none; opacity: 0.4;
     }
     #crosshair::before, #crosshair::after {
-      content: '';
-      position: absolute;
-      background: #fff;
+      content: ''; position: absolute; background: #fff;
     }
     #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-    #crosshair::after  { height: 2px; width: 100%; top: 50%;  transform: translateY(-50%); }
+    #crosshair::after  { height: 2px; width: 100%; top:  50%; transform: translateY(-50%); }
   </style>
 </head>
 <body>
 
-<!-- Camera feed -->
 <video id="bg-video" autoplay playsinline muted></video>
-
-<!-- Three.js canvas -->
 <canvas id="three-canvas"></canvas>
 
-<!-- UI -->
-<div id="ui" style="display:none">
+<div id="ui">
   <div id="top-bar">
     <span class="badge">📦 500mm キューブ</span>
     <button id="exit-btn" onclick="stopAR()">✕ 終了</button>
@@ -204,194 +163,259 @@
   <div id="bottom-panel">
     <div id="status">カメラを床に向けてタップで配置</div>
     <div id="btn-row">
-      <button class="ar-btn hidden" id="btn-rl" onclick="rotateCube(-1)">← 回転</button>
-      <button class="ar-btn hidden" id="btn-rr" onclick="rotateCube( 1)">回転 →</button>
+      <button class="ar-btn hidden" id="btn-rl"    onclick="rotateCube(-1)">← 回転</button>
+      <button class="ar-btn hidden" id="btn-rr"    onclick="rotateCube( 1)">回転 →</button>
       <button class="ar-btn hidden" id="btn-reset" onclick="resetCube()">リセット</button>
     </div>
   </div>
 </div>
 
-<!-- Start screen -->
 <div id="start-screen">
   <div class="logo">📦</div>
   <h1>AR Cube 500mm</h1>
-  <p class="subtitle">カメラ映像の上に 500mm の立方体を配置します。<br>床に向けてタップすると置けます。</p>
+  <p class="subtitle">カメラ映像に 500mm の立方体を重ねて表示します。<br>WebXR 不要・Safari 対応</p>
   <div class="info-box">
     <b>使い方</b><br>
     ① カメラを床に向ける<br>
     ② タップしてキューブを配置<br>
-    ③ タップした場所へ移動<br>
+    ③ ドラッグで移動<br>
     ④ ← → ボタンで回転
   </div>
   <button id="start-btn" onclick="startAR()">▶ AR を開始</button>
   <div id="err"></div>
 </div>
 
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<!-- Three.js を読み込んでから inline script を実行 -->
+<script>
+// Three.js を動的に読み込み、完了後に準備完了とする
+(function () {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+  s.onload = function () {
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = '▶ AR を開始';
+  };
+  s.onerror = function () {
+    document.getElementById('err').textContent =
+      'Three.js の読み込みに失敗しました。\nWi-Fi 接続を確認してもう一度お試しください。';
+    document.getElementById('start-btn').textContent = '読み込み失敗';
+  };
+  document.head.appendChild(s);
+  // ロード中はボタン無効
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = '読み込み中...';
+})();
+</script>
+
 <script>
 'use strict';
 
+// ── State (Three.js 依存の初期化はすべて関数内で行う) ──────────────────
+var renderer, scene, camera, animId;
+var cubeGroup;
+var cubeRotY    = 0;
+var cubeVisible = false;
+var cameraStream = null;
+
+var isDragging    = false;
+var lastTouch     = null;
+var touchStartPos = null;
+var touchStartTime = 0;
+
+var orientGranted = false;
+var orientAlpha = 0, orientBeta = 90, orientGamma = 0;
+var smoothQ = null;   // THREE.Quaternion — 初期化は initThree() 内
+
+var TAP_MS = 250;
+var TAP_PX = 12;
+
+// ── Error helper ──────────────────────────────────────────────────
+function showErr(msg) {
+  var el = document.getElementById('err');
+  el.textContent = msg;
+  var btn = document.getElementById('start-btn');
+  btn.disabled = false;
+  btn.textContent = '▶ もう一度試す';
+}
+
+function setStatus(msg) {
+  var el = document.getElementById('status');
+  if (el) el.textContent = msg;
+}
+
 // ══════════════════════════════════════════════════════════════════
-//  State
-// ══════════════════════════════════════════════════════════════════
-let renderer, scene, camera, animId;
-let cubeGroup, floorGrid;
-let cubeY = 0;
-let cubeRotY = 0;
-let cubeVisible = false;
-let cameraStream = null;
-
-// Touch / drag
-let isDragging = false;
-let lastTouch = null;
-let touchStartPos = null;
-let touchStartTime = 0;
-
-// DeviceOrientation
-let orientAlpha = 0, orientBeta = 90, orientGamma = 0;
-let orientGranted = false;
-let smoothQ = new THREE.Quaternion();
-
-const TAP_MS   = 250;
-const TAP_PX   = 12;
-
-// ══════════════════════════════════════════════════════════════════
-//  Start / Stop
+//  startAR
 // ══════════════════════════════════════════════════════════════════
 async function startAR() {
-  const errEl = document.getElementById('err');
-  errEl.textContent = '';
+  var btn = document.getElementById('start-btn');
+  btn.disabled = true;
+  btn.textContent = '起動中...';
+  document.getElementById('err').textContent = '';
 
-  // 1. Camera
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' },
-               width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-  } catch (e) {
-    errEl.textContent = 'カメラの許可が必要です: ' + e.message;
+  // ① Three.js チェック
+  if (typeof THREE === 'undefined') {
+    showErr('Three.js がまだ読み込まれていません。\nしばらく待ってもう一度お試しください。');
     return;
   }
-  const video = document.getElementById('bg-video');
-  video.srcObject = cameraStream;
 
-  // 2. Device orientation permission (iOS 13+)
+  // ② DeviceOrientation 許可（iOS 13+ は必ずユーザー操作の直後に要求）
+  orientGranted = false;
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
-      const res = await DeviceOrientationEvent.requestPermission();
+      var res = await DeviceOrientationEvent.requestPermission();
       orientGranted = (res === 'granted');
-    } catch(_) {}
+    } catch (e) {
+      // 許可されなくても続行（固定カメラ角度になる）
+    }
   } else {
     orientGranted = true;
   }
+
+  // ③ カメラ
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showErr('カメラ API が利用できません。\nHTTPS で開いているか確認してください。');
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+  } catch (e) {
+    showErr('カメラエラー: ' + e.name + '\n' + e.message);
+    return;
+  }
+
+  var video = document.getElementById('bg-video');
+  video.srcObject = cameraStream;
+  try { await video.play(); } catch(_) {}
+
+  // ④ ジャイロ
   if (orientGranted) {
     window.addEventListener('deviceorientation', onOrientation, true);
   }
 
-  // 3. Three.js
-  initThree();
+  // ⑤ Three.js
+  try {
+    initThree();
+  } catch (e) {
+    showErr('3D 初期化エラー: ' + e.message);
+    return;
+  }
 
-  // 4. Touch events
-  const canvas = document.getElementById('three-canvas');
+  // ⑥ タッチ
+  var canvas = document.getElementById('three-canvas');
   canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
   canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
   canvas.addEventListener('touchend',    onTouchEnd,    { passive: false });
   canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
-  // 5. Show UI
+  window.addEventListener('resize', onResize);
+
+  // ⑦ UI 切替
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('ui').style.display = 'block';
 
-  // 6. Resize handler
-  window.addEventListener('resize', onResize);
-
-  setStatus('カメラを床に向けてタップで配置');
+  setStatus('タップしてキューブを配置');
   animate();
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  stopAR
+// ══════════════════════════════════════════════════════════════════
 function stopAR() {
   cancelAnimationFrame(animId);
+
   if (renderer) { renderer.dispose(); renderer = null; }
-  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    cameraStream = null;
+  }
+  document.getElementById('bg-video').srcObject = null;
+
   window.removeEventListener('deviceorientation', onOrientation, true);
   window.removeEventListener('resize', onResize);
 
-  const canvas = document.getElementById('three-canvas');
+  var canvas = document.getElementById('three-canvas');
   canvas.removeEventListener('touchstart',  onTouchStart);
   canvas.removeEventListener('touchmove',   onTouchMove);
   canvas.removeEventListener('touchend',    onTouchEnd);
   canvas.removeEventListener('touchcancel', onTouchCancel);
 
-  document.getElementById('bg-video').srcObject = null;
+  cubeVisible = false;
+  cubeRotY    = 0;
+  showCubeButtons(false);
+
   document.getElementById('ui').style.display = 'none';
   document.getElementById('start-screen').style.display = 'flex';
 
-  cubeVisible = false;
-  showCubeButtons(false);
+  var btn = document.getElementById('start-btn');
+  btn.disabled = false;
+  btn.textContent = '▶ AR を開始';
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Three.js Init
+//  initThree
 // ══════════════════════════════════════════════════════════════════
 function initThree() {
-  scene = new THREE.Scene();
+  smoothQ = new THREE.Quaternion();   // ← THREE 確定後に初期化
 
-  const W = window.innerWidth, H = window.innerHeight;
+  scene  = new THREE.Scene();
+  var W  = window.innerWidth, H = window.innerHeight;
   camera = new THREE.PerspectiveCamera(60, W / H, 0.01, 50);
-  camera.position.set(0, 1.2, 0);    // eye height ~1.2 m
-  camera.lookAt(0, 0, -1);
+  camera.position.set(0, 1.2, 0);
+  camera.lookAt(0, 0, -1.5);
 
-  const canvas = document.getElementById('three-canvas');
-  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  var canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0);  // fully transparent → shows video behind
+  renderer.setClearColor(0x000000, 0);
 
-  // Lights
+  // 照明
   scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-  const sun = new THREE.DirectionalLight(0xfff5e0, 2.0);
+  var sun = new THREE.DirectionalLight(0xfff5e0, 2.0);
   sun.position.set(2, 5, 3);
   scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
 
-  // Floor grid (gives depth reference)
-  const gridHelper = new THREE.GridHelper(8, 16, 0xffffff, 0xffffff);
-  gridHelper.material.opacity    = 0.12;
-  gridHelper.material.transparent = true;
-  gridHelper.position.y = 0;
-  scene.add(gridHelper);
-  floorGrid = gridHelper;
+  // 床グリッド
+  var grid = new THREE.GridHelper(10, 20, 0xffffff, 0xffffff);
+  grid.material.opacity = 0.10;
+  grid.material.transparent = true;
+  scene.add(grid);
 
-  // Cube group
+  // キューブ（500mm = 0.5m）
   cubeGroup = new THREE.Group();
   cubeGroup.visible = false;
+  scene.add(cubeGroup);
 
-  const SIZE = 0.5;
-  const geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+  var SIZE = 0.5;
+  var geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
 
-  const faceMat = new THREE.MeshStandardMaterial({
+  var faceMat = new THREE.MeshStandardMaterial({
     color: 0x1565C0,
     roughness: 0.35,
     metalness: 0.2,
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.90,
   });
   cubeGroup.add(new THREE.Mesh(geo, faceMat));
+  cubeGroup.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: 0xffffff })
+  ));
 
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-  cubeGroup.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
-
-  // Shadow disc
-  const discGeo = new THREE.CircleGeometry(0.28, 32);
+  // 影ディスク
+  var discGeo = new THREE.CircleGeometry(0.28, 32);
   discGeo.rotateX(-Math.PI / 2);
-  const discMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 });
-  const disc = new THREE.Mesh(discGeo, discMat);
+  var disc = new THREE.Mesh(discGeo,
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.20 })
+  );
   disc.position.y = -SIZE / 2 + 0.001;
   cubeGroup.add(disc);
-
-  scene.add(cubeGroup);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -400,13 +424,12 @@ function initThree() {
 function animate() {
   animId = requestAnimationFrame(animate);
   if (!renderer) return;
-
   applyCameraOrientation();
   renderer.render(scene, camera);
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Device Orientation → Camera Rotation
+//  DeviceOrientation → カメラ回転
 // ══════════════════════════════════════════════════════════════════
 function onOrientation(e) {
   if (e.alpha != null) orientAlpha = e.alpha;
@@ -414,15 +437,21 @@ function onOrientation(e) {
   if (e.gamma != null) orientGamma = e.gamma;
 }
 
-const _euler = new THREE.Euler();
-const _quat  = new THREE.Quaternion();
-// Correction: device-space → world-space for portrait mode
-const _qBase = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+var _euler  = null;
+var _quat   = null;
+var _qBase  = null;
 
 function applyCameraOrientation() {
-  if (!orientGranted) return;
+  if (!orientGranted || !smoothQ) return;
 
-  const screenAngle = (window.orientation || 0) * Math.PI / 180;
+  // 初回だけ生成
+  if (!_euler) {
+    _euler = new THREE.Euler();
+    _quat  = new THREE.Quaternion();
+    _qBase = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+  }
+
+  var screenAngle = ((window.orientation || 0) * Math.PI) / 180;
 
   _euler.set(
     THREE.MathUtils.degToRad(orientBeta),
@@ -432,90 +461,82 @@ function applyCameraOrientation() {
   );
   _quat.setFromEuler(_euler);
 
-  // Screen orientation correction
-  const qScreen = new THREE.Quaternion(0, 0, -Math.sin(screenAngle / 2), Math.cos(screenAngle / 2));
-
+  var qScreen = new THREE.Quaternion(
+    0, 0, -Math.sin(screenAngle / 2), Math.cos(screenAngle / 2)
+  );
   _quat.premultiply(_qBase).multiply(qScreen);
 
-  // Smooth (SLERP)
-  smoothQ.slerp(_quat, 0.15);
+  smoothQ.slerp(_quat, 0.12);
   camera.quaternion.copy(smoothQ);
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Touch → Place / Move Cube
+//  Touch
 // ══════════════════════════════════════════════════════════════════
 function onTouchStart(e) {
   e.preventDefault();
   if (e.touches.length !== 1) return;
-  const t = e.touches[0];
-  touchStartPos = { x: t.clientX, y: t.clientY };
+  var t = e.touches[0];
+  touchStartPos  = { x: t.clientX, y: t.clientY };
   touchStartTime = Date.now();
-  lastTouch = { x: t.clientX, y: t.clientY };
-  isDragging = false;
+  lastTouch      = { x: t.clientX, y: t.clientY };
+  isDragging     = false;
 }
 
 function onTouchMove(e) {
   e.preventDefault();
   if (e.touches.length !== 1 || !touchStartPos) return;
-  const t = e.touches[0];
-  const dx = t.clientX - touchStartPos.x;
-  const dy = t.clientY - touchStartPos.y;
+  var t  = e.touches[0];
+  var dx = t.clientX - touchStartPos.x;
+  var dy = t.clientY - touchStartPos.y;
 
-  if (!isDragging && Math.sqrt(dx*dx + dy*dy) > TAP_PX) isDragging = true;
+  if (!isDragging && Math.sqrt(dx * dx + dy * dy) > TAP_PX) isDragging = true;
 
   if (isDragging && cubeVisible) {
-    // Move cube: map screen delta to world XZ
-    const delta = screenDeltaToWorld(
-      t.clientX - lastTouch.x,
-      t.clientY - lastTouch.y
-    );
+    var delta = screenDeltaToWorld(t.clientX - lastTouch.x, t.clientY - lastTouch.y);
     cubeGroup.position.x += delta.x;
     cubeGroup.position.z += delta.z;
   }
-
   lastTouch = { x: t.clientX, y: t.clientY };
 }
 
 function onTouchEnd(e) {
   e.preventDefault();
-  const elapsed = Date.now() - touchStartTime;
-
+  var elapsed = Date.now() - touchStartTime;
   if (!isDragging && elapsed < TAP_MS && touchStartPos) {
-    // Tap → place / teleport cube
     placeCubeAtScreen(touchStartPos.x, touchStartPos.y);
   }
-  isDragging = false;
+  isDragging    = false;
   touchStartPos = null;
-  lastTouch = null;
+  lastTouch     = null;
 }
 
 function onTouchCancel(e) {
   e.preventDefault();
-  isDragging = false;
+  isDragging    = false;
   touchStartPos = null;
-  lastTouch = null;
+  lastTouch     = null;
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Place cube at screen tap position (on floor plane y=0)
+//  キューブをタップ位置に配置（床平面 y=0 との交点）
 // ══════════════════════════════════════════════════════════════════
-const _raycaster = new THREE.Raycaster();
-const _floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const _ndcVec = new THREE.Vector2();
-const _hitPt  = new THREE.Vector3();
+var _ray  = new THREE.Raycaster();   // THREE 未ロード時は実行されないので安全
+// ↑ これは問題になる。関数内に移動する
+function placeCubeAtScreen(sx, sy) {
+  if (!camera || !scene) return;
 
-function placeCubeAtScreen(screenX, screenY) {
-  _ndcVec.set(
-    (screenX / window.innerWidth)  * 2 - 1,
-    -(screenY / window.innerHeight) * 2 + 1
+  var raycaster = new THREE.Raycaster();
+  var ndc = new THREE.Vector2(
+    (sx / window.innerWidth)  * 2 - 1,
+    -(sy / window.innerHeight) * 2 + 1
   );
-  _raycaster.setFromCamera(_ndcVec, camera);
+  raycaster.setFromCamera(ndc, camera);
 
-  const floorY = 0;
-  const planeAtFloor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY);
-  if (_raycaster.ray.intersectPlane(planeAtFloor, _hitPt)) {
-    cubeGroup.position.set(_hitPt.x, floorY + 0.25, _hitPt.z);
+  var floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  var hit = new THREE.Vector3();
+  if (raycaster.ray.intersectPlane(floorPlane, hit)) {
+    cubeGroup.position.set(hit.x, 0.25, hit.z);
     if (!cubeVisible) {
       cubeVisible = true;
       cubeGroup.visible = true;
@@ -525,12 +546,15 @@ function placeCubeAtScreen(screenX, screenY) {
   }
 }
 
-// Convert screen pixel delta → world XZ delta on the floor plane
+// ══════════════════════════════════════════════════════════════════
+//  スクリーン移動量 → ワールド XZ 変換
+// ══════════════════════════════════════════════════════════════════
 function screenDeltaToWorld(dsx, dsy) {
-  // Use camera's right and forward vectors projected onto floor
-  const right   = new THREE.Vector3();
-  const forward = new THREE.Vector3();
-  const up      = new THREE.Vector3(0, 1, 0);
+  if (!camera || !cubeGroup) return { x: 0, z: 0 };
+
+  var right   = new THREE.Vector3();
+  var forward = new THREE.Vector3();
+  var up      = new THREE.Vector3(0, 1, 0);
 
   camera.getWorldDirection(forward);
   forward.y = 0;
@@ -538,51 +562,42 @@ function screenDeltaToWorld(dsx, dsy) {
   forward.normalize();
   right.crossVectors(forward, up).normalize();
 
-  // Scale: rough metres-per-pixel based on distance from camera to cube
-  const dist = camera.position.distanceTo(cubeGroup.position);
-  const fovY = THREE.MathUtils.degToRad(camera.fov);
-  const worldPerPx = (2 * dist * Math.tan(fovY / 2)) / window.innerHeight;
+  var dist = camera.position.distanceTo(cubeGroup.position);
+  var fovY = THREE.MathUtils.degToRad(camera.fov);
+  var scale = (2 * dist * Math.tan(fovY / 2)) / window.innerHeight;
 
   return {
-    x: (-right.x * dsx + forward.x * dsy) * worldPerPx,
-    z: (-right.z * dsx + forward.z * dsy) * worldPerPx,
+    x: (-right.x * dsx + forward.x * dsy) * scale,
+    z: (-right.z * dsx + forward.z * dsy) * scale,
   };
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Controls
+//  コントロール
 // ══════════════════════════════════════════════════════════════════
 function rotateCube(dir) {
-  cubeRotY += dir * Math.PI / 4;
+  cubeRotY += dir * (Math.PI / 4);
   cubeGroup.rotation.y = cubeRotY;
 }
 
 function resetCube() {
   cubeVisible = false;
   cubeGroup.visible = false;
-  cubeGroup.position.set(0, 0.25, -1.5);
   cubeRotY = 0;
   cubeGroup.rotation.y = 0;
   showCubeButtons(false);
-  setStatus('カメラを床に向けてタップで配置');
+  setStatus('タップしてキューブを配置');
 }
 
 function showCubeButtons(show) {
-  ['btn-rl','btn-rr','btn-reset'].forEach(id => {
+  ['btn-rl','btn-rr','btn-reset'].forEach(function(id) {
     document.getElementById(id).classList.toggle('hidden', !show);
   });
 }
 
-function setStatus(msg) {
-  document.getElementById('status').textContent = msg;
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Resize
-// ══════════════════════════════════════════════════════════════════
 function onResize() {
-  if (!renderer) return;
-  const W = window.innerWidth, H = window.innerHeight;
+  if (!renderer || !camera) return;
+  var W = window.innerWidth, H = window.innerHeight;
   camera.aspect = W / H;
   camera.updateProjectionMatrix();
   renderer.setSize(W, H);
