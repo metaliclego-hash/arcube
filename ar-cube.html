@@ -10,7 +10,7 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #0d1117;
+      background: #000;
       font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
       overflow: hidden;
       touch-action: none;
@@ -18,35 +18,54 @@
       user-select: none;
     }
 
+    /* Camera background */
+    #bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    /* Three.js canvas on top — transparent */
+    #three-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+    }
+
+    /* UI layer above canvas */
+    #ui {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+    }
+
     /* ── Start Screen ── */
     #start-screen {
       position: fixed;
       inset: 0;
+      z-index: 100;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem;
-      background: linear-gradient(160deg, #0d1117 0%, #161b22 100%);
+      background: linear-gradient(160deg, #0d1117, #161b22);
       color: #e6edf3;
-      z-index: 1000;
     }
-    .logo {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      filter: drop-shadow(0 0 20px rgba(0,122,255,0.5));
-    }
+    .logo { font-size: 4rem; margin-bottom: 1rem; }
     #start-screen h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-    #start-screen .subtitle {
+    .subtitle {
       font-size: 0.9rem;
       color: #8b949e;
       text-align: center;
       line-height: 1.7;
       margin-bottom: 1.8rem;
     }
-
-    /* ── Compat panel ── */
-    #compat-panel {
+    .info-box {
       width: 100%;
       max-width: 360px;
       background: #161b22;
@@ -54,24 +73,11 @@
       border-radius: 14px;
       padding: 1rem 1.2rem;
       margin-bottom: 1.5rem;
+      font-size: 0.82rem;
+      color: #8b949e;
+      line-height: 1.7;
     }
-    .compat-row {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.45rem 0;
-      font-size: 0.85rem;
-      border-bottom: 1px solid #21262d;
-    }
-    .compat-row:last-child { border-bottom: none; }
-    .compat-icon { font-size: 1rem; width: 22px; text-align: center; flex-shrink: 0; }
-    .compat-label { color: #8b949e; }
-    .compat-label b { color: #e6edf3; }
-    .ok   .compat-icon::after { content: '✅'; }
-    .warn .compat-icon::after { content: '⚠️'; }
-    .err  .compat-icon::after { content: '❌'; }
-    .pend .compat-icon::after { content: '⏳'; }
-
+    .info-box b { color: #e6edf3; }
     #start-btn {
       width: 100%;
       max-width: 360px;
@@ -83,52 +89,26 @@
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+      pointer-events: auto;
     }
-    #start-btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
-    #start-btn:not(:disabled):active { background: #196127; transform: scale(0.98); }
+    #start-btn:active { background: #196127; }
+    #err { margin-top: 1rem; font-size: 0.82rem; color: #f85149; text-align: center; }
 
-    #error-msg {
-      margin-top: 1rem;
-      font-size: 0.82rem;
-      color: #f85149;
-      text-align: center;
-      max-width: 360px;
-      line-height: 1.5;
-    }
-    #help-msg {
-      margin-top: 0.8rem;
-      font-size: 0.78rem;
-      color: #8b949e;
-      text-align: center;
-      max-width: 360px;
-      line-height: 1.5;
-    }
-
-    /* ── AR Overlay ── */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      pointer-events: none;
-      display: none;
-    }
-
-    /* Top bar */
+    /* ── AR UI ── */
     #top-bar {
       position: absolute;
-      top: env(safe-area-inset-top, 20px);
+      top: env(safe-area-inset-top, 16px);
       left: 0; right: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: 10px 16px;
       pointer-events: auto;
     }
     .badge {
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #fff;
       padding: 7px 14px;
       border-radius: 20px;
@@ -137,8 +117,8 @@
     }
     #exit-btn {
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #fff;
       border: 1px solid rgba(255,255,255,0.12);
       padding: 7px 16px;
@@ -146,25 +126,23 @@
       font-size: 0.82rem;
       cursor: pointer;
     }
-
-    /* Bottom panel */
     #bottom-panel {
       position: absolute;
-      bottom: env(safe-area-inset-bottom, 30px);
+      bottom: env(safe-area-inset-bottom, 28px);
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       pointer-events: auto;
       width: 90%;
       max-width: 400px;
     }
-    #status-toast {
-      background: rgba(0,0,0,0.62);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+    #status {
+      background: rgba(0,0,0,0.60);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #fff;
       padding: 10px 20px;
       border-radius: 22px;
@@ -173,433 +151,441 @@
       border: 1px solid rgba(255,255,255,0.10);
       width: 100%;
     }
-    #btn-row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-    }
+    #btn-row { display: flex; gap: 10px; }
     .ar-btn {
-      background: rgba(0,0,0,0.60);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0,0,0,0.58);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       color: #fff;
       border: 1px solid rgba(255,255,255,0.18);
-      padding: 9px 20px;
+      padding: 9px 18px;
       border-radius: 22px;
       font-size: 0.85rem;
       cursor: pointer;
     }
     .ar-btn:active { background: rgba(255,255,255,0.18); }
-    .ar-btn.hidden { display: none; }
+    .hidden { display: none !important; }
 
-    /* Canvas sits below overlay */
-    canvas { position: fixed; inset: 0; z-index: 100; }
+    /* Crosshair */
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30px;
+      height: 30px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+    }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+    #crosshair::after  { height: 2px; width: 100%; top: 50%;  transform: translateY(-50%); }
   </style>
 </head>
 <body>
 
-<!-- ─────────────────────────── Start Screen ─────────────────────────── -->
+<!-- Camera feed -->
+<video id="bg-video" autoplay playsinline muted></video>
+
+<!-- Three.js canvas -->
+<canvas id="three-canvas"></canvas>
+
+<!-- UI -->
+<div id="ui" style="display:none">
+  <div id="top-bar">
+    <span class="badge">📦 500mm キューブ</span>
+    <button id="exit-btn" onclick="stopAR()">✕ 終了</button>
+  </div>
+  <div id="crosshair"></div>
+  <div id="bottom-panel">
+    <div id="status">カメラを床に向けてタップで配置</div>
+    <div id="btn-row">
+      <button class="ar-btn hidden" id="btn-rl" onclick="rotateCube(-1)">← 回転</button>
+      <button class="ar-btn hidden" id="btn-rr" onclick="rotateCube( 1)">回転 →</button>
+      <button class="ar-btn hidden" id="btn-reset" onclick="resetCube()">リセット</button>
+    </div>
+  </div>
+</div>
+
+<!-- Start screen -->
 <div id="start-screen">
   <div class="logo">📦</div>
-  <h1>AR Cube</h1>
-  <p class="subtitle">
-    500mm の立方体を床に配置します。<br>
-    iPad を床に向け、カメラを動かして<br>平面を検出してください。
-  </p>
-
-  <div id="compat-panel">
-    <div class="compat-row pend" id="row-https">
-      <span class="compat-icon"></span>
-      <span class="compat-label">HTTPS 接続</span>
-    </div>
-    <div class="compat-row pend" id="row-webxr">
-      <span class="compat-icon"></span>
-      <span class="compat-label">WebXR API</span>
-    </div>
-    <div class="compat-row pend" id="row-ar">
-      <span class="compat-icon"></span>
-      <span class="compat-label">immersive-ar モード</span>
-    </div>
-    <div class="compat-row pend" id="row-hittest">
-      <span class="compat-icon"></span>
-      <span class="compat-label">ヒットテスト（平面検出）</span>
-    </div>
+  <h1>AR Cube 500mm</h1>
+  <p class="subtitle">カメラ映像の上に 500mm の立方体を配置します。<br>床に向けてタップすると置けます。</p>
+  <div class="info-box">
+    <b>使い方</b><br>
+    ① カメラを床に向ける<br>
+    ② タップしてキューブを配置<br>
+    ③ タップした場所へ移動<br>
+    ④ ← → ボタンで回転
   </div>
-
-  <button id="start-btn" disabled>確認中...</button>
-  <div id="error-msg"></div>
-  <div id="help-msg"></div>
+  <button id="start-btn" onclick="startAR()">▶ AR を開始</button>
+  <div id="err"></div>
 </div>
 
-<!-- ─────────────────────────── AR Overlay ─────────────────────────── -->
-<div id="overlay">
-  <div id="top-bar">
-    <span class="badge" id="cube-badge">📦 500mm</span>
-    <button id="exit-btn" onclick="endAR()">✕ 終了</button>
-  </div>
-  <div id="bottom-panel">
-    <div id="status-toast">床を検出中… カメラを床に向けてください</div>
-    <div id="btn-row">
-      <button class="ar-btn hidden" id="rotate-left-btn"  onclick="rotateCube(-1)">← 回転</button>
-      <button class="ar-btn hidden" id="rotate-right-btn" onclick="rotateCube( 1)">回転 →</button>
-      <button class="ar-btn hidden" id="reset-btn"        onclick="resetCube()">リセット</button>
-    </div>
-  </div>
-</div>
-
-<!-- Three.js r160 — stable, well-tested WebXR support -->
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script>
 'use strict';
 
-// ══════════════════════════════════════════════════════════════════════
-//  Compatibility Check (runs immediately on load)
-// ══════════════════════════════════════════════════════════════════════
-function setRow(id, state, label) {
-  const row = document.getElementById(id);
-  row.className = 'compat-row ' + state;          // ok / warn / err / pend
-  if (label) row.querySelector('.compat-label').textContent = label;
-}
-
-async function runCompatChecks() {
-  const startBtn = document.getElementById('start-btn');
-  const errorMsg = document.getElementById('error-msg');
-  const helpMsg  = document.getElementById('help-msg');
-  let ok = true;
-
-  // 1. HTTPS
-  const secure = location.protocol === 'https:' ||
-                 location.hostname === 'localhost' ||
-                 location.hostname === '127.0.0.1';
-  setRow('row-https', secure ? 'ok' : 'err',
-    secure ? 'HTTPS 接続: OK' : 'HTTPS が必要です（現在 HTTP）');
-  if (!secure) {
-    ok = false;
-    errorMsg.textContent = 'WebXR は HTTPS 接続が必須です。HTTPS 経由でアクセスしてください。';
-  }
-
-  // 2. WebXR API
-  if (!navigator.xr) {
-    setRow('row-webxr', 'err', 'WebXR API: 非対応');
-    setRow('row-ar',     'err', 'immersive-ar: 確認不可');
-    setRow('row-hittest','err', 'ヒットテスト: 確認不可');
-    ok = false;
-    errorMsg.textContent = 'このブラウザは WebXR をサポートしていません。\nSafari 最新版（設定 › Safari › 詳細 › 試験的機能 › WebXR を有効）をお試しください。';
-    helpMsg.textContent  = 'iPadOS 15 以降の Safari が必要です。';
-  } else {
-    setRow('row-webxr', 'ok', 'WebXR API: 利用可能');
-
-    // 3. immersive-ar
-    let arOk = false;
-    try { arOk = await navigator.xr.isSessionSupported('immersive-ar'); } catch(_) {}
-    setRow('row-ar', arOk ? 'ok' : 'err',
-      arOk ? 'immersive-ar: サポート済み' : 'immersive-ar: 非対応（設定で有効化が必要かも）');
-    if (!arOk) {
-      ok = false;
-      errorMsg.textContent = 'このデバイスは AR モードをサポートしていません。';
-      helpMsg.textContent  = 'Safari › 設定 › 詳細 › 試験的機能 › WebXR Device API / WebXR AR Module を ON にしてください。';
-    }
-
-    // 4. hit-test (inferred — actual check requires an active session)
-    setRow('row-hittest', arOk ? 'ok' : 'warn',
-      arOk ? 'ヒットテスト: 利用可能（推定）' : 'ヒットテスト: 確認できません');
-  }
-
-  if (ok) {
-    startBtn.disabled = false;
-    startBtn.textContent = '▶ AR を開始';
-  } else {
-    startBtn.disabled = true;
-    startBtn.textContent = 'このブラウザでは利用不可';
-  }
-}
-runCompatChecks();
-
-// ══════════════════════════════════════════════════════════════════════
-//  AR Application State
-// ══════════════════════════════════════════════════════════════════════
-let renderer, scene, camera;
-let reticle;
-let cubeGroup;
-let hitTestSource = null;
-let hitTestRequested = false;
+// ══════════════════════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════════════════════
+let renderer, scene, camera, animId;
+let cubeGroup, floorGrid;
+let cubeY = 0;
+let cubeRotY = 0;
 let cubeVisible = false;
-let cubeYRotation = 0;
+let cameraStream = null;
 
-// Long-press drag state
-let selectHeld = false;
-let dragTimer  = null;
+// Touch / drag
 let isDragging = false;
-const DRAG_MS  = 450;
+let lastTouch = null;
+let touchStartPos = null;
+let touchStartTime = 0;
 
-function setStatus(msg) {
-  document.getElementById('status-toast').textContent = msg;
-}
-function showCubeButtons(show) {
-  ['rotate-left-btn','rotate-right-btn','reset-btn'].forEach(id => {
-    document.getElementById(id).classList.toggle('hidden', !show);
-  });
-}
+// DeviceOrientation
+let orientAlpha = 0, orientBeta = 90, orientGamma = 0;
+let orientGranted = false;
+let smoothQ = new THREE.Quaternion();
 
-// ══════════════════════════════════════════════════════════════════════
-//  Start AR
-// ══════════════════════════════════════════════════════════════════════
-document.getElementById('start-btn').addEventListener('click', startAR);
+const TAP_MS   = 250;
+const TAP_PX   = 12;
 
+// ══════════════════════════════════════════════════════════════════
+//  Start / Stop
+// ══════════════════════════════════════════════════════════════════
 async function startAR() {
-  // ── Three.js Setup ──────────────────────────────────────────────
-  scene  = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 30);
+  const errEl = document.getElementById('err');
+  errEl.textContent = '';
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  // 1. Camera
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' },
+               width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+  } catch (e) {
+    errEl.textContent = 'カメラの許可が必要です: ' + e.message;
+    return;
+  }
+  const video = document.getElementById('bg-video');
+  video.srcObject = cameraStream;
+
+  // 2. Device orientation permission (iOS 13+)
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const res = await DeviceOrientationEvent.requestPermission();
+      orientGranted = (res === 'granted');
+    } catch(_) {}
+  } else {
+    orientGranted = true;
+  }
+  if (orientGranted) {
+    window.addEventListener('deviceorientation', onOrientation, true);
+  }
+
+  // 3. Three.js
+  initThree();
+
+  // 4. Touch events
+  const canvas = document.getElementById('three-canvas');
+  canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
+  canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
+  canvas.addEventListener('touchend',    onTouchEnd,    { passive: false });
+  canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+  // 5. Show UI
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('ui').style.display = 'block';
+
+  // 6. Resize handler
+  window.addEventListener('resize', onResize);
+
+  setStatus('カメラを床に向けてタップで配置');
+  animate();
+}
+
+function stopAR() {
+  cancelAnimationFrame(animId);
+  if (renderer) { renderer.dispose(); renderer = null; }
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  window.removeEventListener('deviceorientation', onOrientation, true);
+  window.removeEventListener('resize', onResize);
+
+  const canvas = document.getElementById('three-canvas');
+  canvas.removeEventListener('touchstart',  onTouchStart);
+  canvas.removeEventListener('touchmove',   onTouchMove);
+  canvas.removeEventListener('touchend',    onTouchEnd);
+  canvas.removeEventListener('touchcancel', onTouchCancel);
+
+  document.getElementById('bg-video').srcObject = null;
+  document.getElementById('ui').style.display = 'none';
+  document.getElementById('start-screen').style.display = 'flex';
+
+  cubeVisible = false;
+  showCubeButtons(false);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Three.js Init
+// ══════════════════════════════════════════════════════════════════
+function initThree() {
+  scene = new THREE.Scene();
+
+  const W = window.innerWidth, H = window.innerHeight;
+  camera = new THREE.PerspectiveCamera(60, W / H, 0.01, 50);
+  camera.position.set(0, 1.2, 0);    // eye height ~1.2 m
+  camera.lookAt(0, 0, -1);
+
+  const canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  renderer.xr.setReferenceSpaceType('local-floor');
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  document.body.appendChild(renderer.domElement);
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x000000, 0);  // fully transparent → shows video behind
 
-  // ── Lighting ─────────────────────────────────────────────────────
-  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 1.4));
   const sun = new THREE.DirectionalLight(0xfff5e0, 2.0);
   sun.position.set(2, 5, 3);
   scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
 
-  scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.6));
+  // Floor grid (gives depth reference)
+  const gridHelper = new THREE.GridHelper(8, 16, 0xffffff, 0xffffff);
+  gridHelper.material.opacity    = 0.12;
+  gridHelper.material.transparent = true;
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+  floorGrid = gridHelper;
 
-  // ── Reticle (surface indicator ring) ─────────────────────────────
-  const ringGeo = new THREE.RingGeometry(0.10, 0.16, 36);
-  ringGeo.rotateX(-Math.PI / 2);
-  reticle = new THREE.Mesh(
-    ringGeo,
-    new THREE.MeshBasicMaterial({ color: 0x00e676, side: THREE.DoubleSide })
-  );
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
-
-  // ── Cube (500 mm = 0.5 m) ─────────────────────────────────────────
+  // Cube group
   cubeGroup = new THREE.Group();
   cubeGroup.visible = false;
-  scene.add(cubeGroup);
 
   const SIZE = 0.5;
-  const cubeGeo = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+  const geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
 
-  // Faces: semi-transparent blue
   const faceMat = new THREE.MeshStandardMaterial({
     color: 0x1565C0,
     roughness: 0.35,
-    metalness: 0.25,
+    metalness: 0.2,
     transparent: true,
     opacity: 0.88,
   });
-  const cubeMesh = new THREE.Mesh(cubeGeo, faceMat);
-  cubeGroup.add(cubeMesh);
+  cubeGroup.add(new THREE.Mesh(geo, faceMat));
 
-  // Edges: white outline
-  const edgeGeo = new THREE.EdgesGeometry(cubeGeo);
   const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-  cubeGroup.add(new THREE.LineSegments(edgeGeo, edgeMat));
+  cubeGroup.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
 
-  // Thin shadow disc on ground
-  const discGeo = new THREE.CircleGeometry(0.3, 32);
+  // Shadow disc
+  const discGeo = new THREE.CircleGeometry(0.28, 32);
   discGeo.rotateX(-Math.PI / 2);
-  const discMat = new THREE.MeshBasicMaterial({
-    color: 0x000000,
-    transparent: true,
-    opacity: 0.18,
-  });
+  const discMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 });
   const disc = new THREE.Mesh(discGeo, discMat);
-  disc.position.y = -0.249;        // just below cube bottom
+  disc.position.y = -SIZE / 2 + 0.001;
   cubeGroup.add(disc);
 
-  // ── XR Session ───────────────────────────────────────────────────
-  const overlay = document.getElementById('overlay');
-  let session;
-
-  // Try with dom-overlay first (keeps HTML interactive in AR)
-  try {
-    session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay', 'light-estimation'],
-      domOverlay: { root: overlay },
-    });
-  } catch (_) {
-    // Fallback: without dom-overlay (buttons may not respond on some builds)
-    try {
-      session = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test'],
-      });
-    } catch (err) {
-      document.getElementById('error-msg').textContent =
-        'AR セッション開始エラー: ' + err.message;
-      renderer.domElement.remove();
-      renderer.dispose();
-      return;
-    }
-  }
-
-  await renderer.xr.setSession(session);
-
-  // ── Controller (tap / long-press) ────────────────────────────────
-  const controller = renderer.xr.getController(0);
-  scene.add(controller);
-
-  controller.addEventListener('selectstart', () => {
-    selectHeld = true;
-    isDragging = false;
-    dragTimer = setTimeout(() => {
-      if (selectHeld && cubeVisible) {
-        isDragging = true;
-        setStatus('ドラッグ中… 指を離すと確定');
-      }
-    }, DRAG_MS);
-  });
-
-  controller.addEventListener('selectend', () => {
-    selectHeld = false;
-    clearTimeout(dragTimer);
-    if (isDragging) {
-      isDragging = false;
-      setStatus('タップで移動 ｜ 長押しでドラッグ');
-    }
-  });
-
-  controller.addEventListener('select', () => {
-    // Fires after selectend — only act if we were NOT dragging
-    if (!isDragging && reticle.visible) {
-      placeCube();
-    }
-  });
-
-  // ── Session end ───────────────────────────────────────────────────
-  session.addEventListener('end', onSessionEnd);
-
-  // ── Show UI ──────────────────────────────────────────────────────
-  document.getElementById('start-screen').style.display = 'none';
-  overlay.style.display = 'block';
-  setStatus('床を検出中… カメラを床に向けてください');
-
-  // ── Render Loop ──────────────────────────────────────────────────
-  renderer.setAnimationLoop(renderLoop);
+  scene.add(cubeGroup);
 }
 
-// ══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
 //  Render Loop
-// ══════════════════════════════════════════════════════════════════════
-function renderLoop(timestamp, frame) {
-  if (!frame) { renderer.render(scene, camera); return; }
+// ══════════════════════════════════════════════════════════════════
+function animate() {
+  animId = requestAnimationFrame(animate);
+  if (!renderer) return;
 
-  const session       = renderer.xr.getSession();
-  const refSpace      = renderer.xr.getReferenceSpace();
-
-  // Request hit-test source once
-  if (!hitTestRequested) {
-    hitTestRequested = true;
-    session.requestReferenceSpace('viewer')
-      .then(vs => session.requestHitTestSource({ space: vs }))
-      .then(src => { hitTestSource = src; })
-      .catch(e  => console.warn('[AR] hit-test source failed:', e));
-  }
-
-  // Process hit-test results
-  if (hitTestSource) {
-    const results = frame.getHitTestResults(hitTestSource);
-    if (results.length > 0) {
-      const pose = results[0].getPose(refSpace);
-      if (pose) {
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
-
-        if (!cubeVisible) {
-          setStatus('タップして配置');
-        } else if (isDragging) {
-          // Move cube to hit position
-          const p = new THREE.Vector3();
-          const q = new THREE.Quaternion();
-          const s = new THREE.Vector3();
-          reticle.matrix.decompose(p, q, s);
-          cubeGroup.position.set(p.x, p.y + 0.25, p.z);
-        }
-      }
-    } else {
-      reticle.visible = false;
-      if (!cubeVisible) setStatus('床を検出中… カメラを床に向けてください');
-    }
-  }
-
-  // Subtle idle rotation when not dragging
-  if (cubeVisible && !isDragging) {
-    cubeGroup.children[0].rotation.y += 0.003;   // only the face mesh rotates gently
-    // Edge lines and shadow disc are separate — don't rotate them here
-  }
-
+  applyCameraOrientation();
   renderer.render(scene, camera);
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  Cube helpers
-// ══════════════════════════════════════════════════════════════════════
-function placeCube() {
-  const p = new THREE.Vector3();
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  reticle.matrix.decompose(p, q, s);
-
-  // Bottom of cube sits exactly on the detected surface
-  cubeGroup.position.set(p.x, p.y + 0.25, p.z);
-
-  if (!cubeVisible) {
-    cubeVisible = true;
-    cubeGroup.visible = true;
-    showCubeButtons(true);
-  }
-  setStatus('タップで移動 ｜ 長押しでドラッグ');
+// ══════════════════════════════════════════════════════════════════
+//  Device Orientation → Camera Rotation
+// ══════════════════════════════════════════════════════════════════
+function onOrientation(e) {
+  if (e.alpha != null) orientAlpha = e.alpha;
+  if (e.beta  != null) orientBeta  = e.beta;
+  if (e.gamma != null) orientGamma = e.gamma;
 }
 
+const _euler = new THREE.Euler();
+const _quat  = new THREE.Quaternion();
+// Correction: device-space → world-space for portrait mode
+const _qBase = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+
+function applyCameraOrientation() {
+  if (!orientGranted) return;
+
+  const screenAngle = (window.orientation || 0) * Math.PI / 180;
+
+  _euler.set(
+    THREE.MathUtils.degToRad(orientBeta),
+    THREE.MathUtils.degToRad(orientAlpha),
+    -THREE.MathUtils.degToRad(orientGamma),
+    'YXZ'
+  );
+  _quat.setFromEuler(_euler);
+
+  // Screen orientation correction
+  const qScreen = new THREE.Quaternion(0, 0, -Math.sin(screenAngle / 2), Math.cos(screenAngle / 2));
+
+  _quat.premultiply(_qBase).multiply(qScreen);
+
+  // Smooth (SLERP)
+  smoothQ.slerp(_quat, 0.15);
+  camera.quaternion.copy(smoothQ);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Touch → Place / Move Cube
+// ══════════════════════════════════════════════════════════════════
+function onTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length !== 1) return;
+  const t = e.touches[0];
+  touchStartPos = { x: t.clientX, y: t.clientY };
+  touchStartTime = Date.now();
+  lastTouch = { x: t.clientX, y: t.clientY };
+  isDragging = false;
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length !== 1 || !touchStartPos) return;
+  const t = e.touches[0];
+  const dx = t.clientX - touchStartPos.x;
+  const dy = t.clientY - touchStartPos.y;
+
+  if (!isDragging && Math.sqrt(dx*dx + dy*dy) > TAP_PX) isDragging = true;
+
+  if (isDragging && cubeVisible) {
+    // Move cube: map screen delta to world XZ
+    const delta = screenDeltaToWorld(
+      t.clientX - lastTouch.x,
+      t.clientY - lastTouch.y
+    );
+    cubeGroup.position.x += delta.x;
+    cubeGroup.position.z += delta.z;
+  }
+
+  lastTouch = { x: t.clientX, y: t.clientY };
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  const elapsed = Date.now() - touchStartTime;
+
+  if (!isDragging && elapsed < TAP_MS && touchStartPos) {
+    // Tap → place / teleport cube
+    placeCubeAtScreen(touchStartPos.x, touchStartPos.y);
+  }
+  isDragging = false;
+  touchStartPos = null;
+  lastTouch = null;
+}
+
+function onTouchCancel(e) {
+  e.preventDefault();
+  isDragging = false;
+  touchStartPos = null;
+  lastTouch = null;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Place cube at screen tap position (on floor plane y=0)
+// ══════════════════════════════════════════════════════════════════
+const _raycaster = new THREE.Raycaster();
+const _floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const _ndcVec = new THREE.Vector2();
+const _hitPt  = new THREE.Vector3();
+
+function placeCubeAtScreen(screenX, screenY) {
+  _ndcVec.set(
+    (screenX / window.innerWidth)  * 2 - 1,
+    -(screenY / window.innerHeight) * 2 + 1
+  );
+  _raycaster.setFromCamera(_ndcVec, camera);
+
+  const floorY = 0;
+  const planeAtFloor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -floorY);
+  if (_raycaster.ray.intersectPlane(planeAtFloor, _hitPt)) {
+    cubeGroup.position.set(_hitPt.x, floorY + 0.25, _hitPt.z);
+    if (!cubeVisible) {
+      cubeVisible = true;
+      cubeGroup.visible = true;
+      showCubeButtons(true);
+    }
+    setStatus('ドラッグで移動 ｜ タップで再配置');
+  }
+}
+
+// Convert screen pixel delta → world XZ delta on the floor plane
+function screenDeltaToWorld(dsx, dsy) {
+  // Use camera's right and forward vectors projected onto floor
+  const right   = new THREE.Vector3();
+  const forward = new THREE.Vector3();
+  const up      = new THREE.Vector3(0, 1, 0);
+
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  if (forward.length() < 0.001) return { x: 0, z: 0 };
+  forward.normalize();
+  right.crossVectors(forward, up).normalize();
+
+  // Scale: rough metres-per-pixel based on distance from camera to cube
+  const dist = camera.position.distanceTo(cubeGroup.position);
+  const fovY = THREE.MathUtils.degToRad(camera.fov);
+  const worldPerPx = (2 * dist * Math.tan(fovY / 2)) / window.innerHeight;
+
+  return {
+    x: (-right.x * dsx + forward.x * dsy) * worldPerPx,
+    z: (-right.z * dsx + forward.z * dsy) * worldPerPx,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Controls
+// ══════════════════════════════════════════════════════════════════
 function rotateCube(dir) {
-  cubeYRotation += dir * (Math.PI / 4);  // 45°
-  cubeGroup.rotation.y = cubeYRotation;
+  cubeRotY += dir * Math.PI / 4;
+  cubeGroup.rotation.y = cubeRotY;
 }
 
 function resetCube() {
   cubeVisible = false;
   cubeGroup.visible = false;
-  cubeYRotation = 0;
+  cubeGroup.position.set(0, 0.25, -1.5);
+  cubeRotY = 0;
   cubeGroup.rotation.y = 0;
-  cubeGroup.children[0].rotation.y = 0;
   showCubeButtons(false);
-  setStatus('床を検出中… カメラを床に向けてください');
+  setStatus('カメラを床に向けてタップで配置');
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  End AR Session
-// ══════════════════════════════════════════════════════════════════════
-async function endAR() {
-  const session = renderer?.xr?.getSession?.();
-  if (session) await session.end();
+function showCubeButtons(show) {
+  ['btn-rl','btn-rr','btn-reset'].forEach(id => {
+    document.getElementById(id).classList.toggle('hidden', !show);
+  });
 }
 
-function onSessionEnd() {
-  hitTestSource    = null;
-  hitTestRequested = false;
-  cubeVisible      = false;
-  isDragging       = false;
-  selectHeld       = false;
-  clearTimeout(dragTimer);
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
 
-  renderer.setAnimationLoop(null);
-  if (renderer.domElement.parentNode) renderer.domElement.remove();
-  renderer.dispose();
-
-  document.getElementById('start-screen').style.display = 'flex';
-  document.getElementById('overlay').style.display      = 'none';
-  showCubeButtons(false);
-
-  // Re-run checks so the start screen is ready again
-  runCompatChecks();
+// ══════════════════════════════════════════════════════════════════
+//  Resize
+// ══════════════════════════════════════════════════════════════════
+function onResize() {
+  if (!renderer) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
 }
 </script>
 </body>
