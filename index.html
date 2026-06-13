@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AR 立方体テスト</title>
+  <title>水道管 AR サイズチェッカー</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,142 +17,368 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: 1.5rem;
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(100, 160, 255, 0.3);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(100,160,255,0.3);
       border-radius: 24px;
-      padding: 2.5rem 2rem;
-      max-width: 400px;
+      padding: 2rem 1.5rem;
+      max-width: 420px;
       width: 100%;
-      text-align: center;
       backdrop-filter: blur(12px);
     }
 
-    .cube-icon {
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 1.5rem;
-    }
-
     h1 {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      margin-bottom: 0.5rem;
+      text-align: center;
       background: linear-gradient(135deg, #64a0ff, #a78bfa);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      margin-bottom: 0.2rem;
     }
 
     .subtitle {
-      font-size: 0.9rem;
-      color: #8899cc;
-      margin-bottom: 2rem;
-      line-height: 1.6;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #667;
+      margin-bottom: 1.4rem;
     }
 
+    /* Cross-section diagram */
+    .diagram {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.4rem;
+    }
+
+    /* Sliders */
+    .param { margin-bottom: 1.2rem; }
+
+    .param-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .param-name { font-size: 0.88rem; color: #8899cc; }
+
+    .param-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .param-unit { font-size: 0.75rem; color: #556; margin-left: 2px; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(
+        to right,
+        #3a7bd5 0%,
+        #3a7bd5 var(--pct, 20%),
+        rgba(255,255,255,0.12) var(--pct, 20%)
+      );
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
+    }
+
+    /* Calculated info */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+      background: rgba(0,0,0,0.25);
+      border-radius: 14px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .info-cell { text-align: center; }
+    .info-label { font-size: 0.72rem; color: #445; margin-bottom: 0.2rem; }
+    .info-val { font-size: 1rem; font-weight: 600; }
+
+    /* AR button (also acts as rel=ar anchor) */
     .ar-btn {
-      display: inline-flex;
+      display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.6rem;
+      width: 100%;
       background: linear-gradient(135deg, #3a7bd5, #6c5ce7);
       color: white;
       text-decoration: none;
       font-size: 1.1rem;
       font-weight: 600;
-      padding: 1rem 2rem;
+      padding: 1rem;
       border-radius: 50px;
-      box-shadow: 0 4px 20px rgba(100, 140, 255, 0.4);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 20px rgba(100,140,255,0.35);
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
 
-    .ar-btn:active {
-      transform: scale(0.97);
-      box-shadow: 0 2px 10px rgba(100, 140, 255, 0.3);
-    }
+    .ar-btn:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(100,140,255,0.2); }
+    .ar-btn.loading { opacity: 0.6; pointer-events: none; }
 
-    .ar-icon {
-      width: 24px;
-      height: 24px;
-    }
-
-    .info {
-      margin-top: 1.5rem;
-      font-size: 0.8rem;
-      color: #556;
-      line-height: 1.7;
+    .status {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #445;
+      margin-top: 0.8rem;
+      min-height: 1em;
     }
 
     .badge {
-      display: inline-block;
-      background: rgba(100, 160, 255, 0.15);
-      border: 1px solid rgba(100, 160, 255, 0.3);
-      border-radius: 8px;
-      padding: 0.25rem 0.7rem;
-      font-size: 0.75rem;
-      color: #88aaff;
-      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.7rem;
+      color: #334;
+      margin-top: 0.6rem;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <!-- Cube SVG preview -->
-    <svg class="cube-icon" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="face-top" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#64a0ff"/>
-          <stop offset="100%" stop-color="#a78bfa"/>
-        </linearGradient>
-        <linearGradient id="face-left" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#2255cc"/>
-          <stop offset="100%" stop-color="#3a7bd5"/>
-        </linearGradient>
-        <linearGradient id="face-right" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#4466ee"/>
-          <stop offset="100%" stop-color="#6c5ce7"/>
-        </linearGradient>
-      </defs>
-      <!-- top face -->
-      <polygon points="60,15 100,35 60,55 20,35" fill="url(#face-top)" opacity="0.95"/>
-      <!-- left face -->
-      <polygon points="20,35 60,55 60,95 20,75" fill="url(#face-left)" opacity="0.9"/>
-      <!-- right face -->
-      <polygon points="60,55 100,35 100,75 60,95" fill="url(#face-right)" opacity="0.85"/>
-      <!-- edges -->
-      <polygon points="60,15 100,35 60,55 20,35" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
-      <polygon points="20,35 60,55 60,95 20,75" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-      <polygon points="60,55 100,35 100,75 60,95" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+<div class="card">
+
+  <h1>水道管 AR サイズチェッカー</h1>
+  <p class="subtitle">実際の空間でパイプのサイズを確認</p>
+
+  <!-- Cross-section diagram -->
+  <div class="diagram">
+    <svg width="160" height="160" viewBox="-80 -80 160 160">
+      <!-- water fill -->
+      <circle id="svg-water" r="55" fill="rgba(20,110,255,0.60)"/>
+      <!-- pipe wall (stroke only) -->
+      <circle id="svg-pipe" r="60" fill="none" stroke="rgba(180,185,205,0.85)" stroke-width="8"/>
+      <!-- OD label -->
+      <line x1="-65" y1="0" x2="65" y2="0" stroke="rgba(100,130,200,0.35)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="0" y="-70" text-anchor="middle" fill="#445" font-size="10"
+            font-family="-apple-system,sans-serif">← 外径 →</text>
     </svg>
-
-    <h1>AR 立方体テスト</h1>
-    <p class="subtitle">
-      500mm × 500mm × 500mm の立方体を<br>現実空間に配置します
-    </p>
-
-    <!-- ARQuickLook trigger: rel="ar" が必須 -->
-    <a class="ar-btn" rel="ar" href="cube.usdz">
-      <!-- img要素はARQuickLookのトリガーとして必要（iOS互換） -->
-      <img src="" alt="" style="display:none" width="0" height="0">
-      <svg class="ar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-        <path d="M2 17l10 5 10-5"/>
-        <path d="M2 12l10 5 10-5"/>
-      </svg>
-      ARで見る
-    </a>
-
-    <div class="info">
-      iPadでこのページを開き、「ARで見る」をタップしてください。<br>
-      カメラが起動し、床や机の上に立方体を置けます。
-    </div>
-
-    <div class="badge">Safari / Chrome 対応 · iOS 26+</div>
   </div>
+
+  <!-- Outer diameter -->
+  <div class="param">
+    <div class="param-row">
+      <span class="param-name">外径</span>
+      <span><span class="param-value" id="od-val">50</span><span class="param-unit"> mm</span></span>
+    </div>
+    <input type="range" id="od" min="13" max="200" value="50" step="1">
+  </div>
+
+  <!-- Length -->
+  <div class="param">
+    <div class="param-row">
+      <span class="param-name">長さ</span>
+      <span><span class="param-value" id="len-val">500</span><span class="param-unit"> mm</span></span>
+    </div>
+    <input type="range" id="len" min="100" max="3000" value="500" step="10">
+  </div>
+
+  <!-- Calculated values -->
+  <div class="info-grid">
+    <div class="info-cell">
+      <div class="info-label">肉厚（自動）</div>
+      <div class="info-val"><span id="wall-val">2.0</span> mm</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">内径</div>
+      <div class="info-val"><span id="id-val">46.0</span> mm</div>
+    </div>
+  </div>
+
+  <!--
+    rel="ar" anchor — ARQuickLookのトリガー。
+    hrefはスライダー変更ごとにJSが動的USDZのblob URLに更新する。
+    ユーザーが直接タップすることでiOSのARQuickLookが起動する。
+  -->
+  <a id="ar-link" class="ar-btn loading" rel="ar" href="#">
+    <img src="" alt="" style="display:none" width="0" height="0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    <span id="btn-label">準備中…</span>
+  </a>
+
+  <p id="status" class="status"></p>
+  <p class="badge">Safari / Chrome 対応 · iOS 26+</p>
+
+</div>
+
+<script>
+const odSlider  = document.getElementById('od');
+const lenSlider = document.getElementById('len');
+const arLink    = document.getElementById('ar-link');
+const btnLabel  = document.getElementById('btn-label');
+const statusEl  = document.getElementById('status');
+
+// 肉厚 = max(2mm, 外径 × 4%)
+function calcWall(od) {
+  return Math.max(2.0, parseFloat((od * 0.04).toFixed(1)));
+}
+
+function generateUSDA(od, len) {
+  const wall   = calcWall(od);
+  const outerR = (od / 2) / 10;         // mm → cm (USD unit)
+  const innerR = (od / 2 - wall) / 10;  // mm → cm
+  const height = len / 10;              // mm → cm
+
+  // 横置き (axis=X)、外径分だけY方向に浮かせて床面に接地
+  return `#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 0.01
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Xform "PipeGroup"
+    {
+        double3 xformOp:translate = (0, ${outerR.toFixed(4)}, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+
+        def Cylinder "Shell"
+        {
+            double height = ${height.toFixed(4)}
+            double radius = ${outerR.toFixed(4)}
+            uniform token axis = "X"
+            rel material:binding = </Root/PipeMat>
+        }
+
+        def Cylinder "Water"
+        {
+            double height = ${height.toFixed(4)}
+            double radius = ${innerR.toFixed(4)}
+            uniform token axis = "X"
+            rel material:binding = </Root/WaterMat>
+        }
+    }
+
+    def Material "PipeMat"
+    {
+        token outputs:surface.connect = </Root/PipeMat/S.outputs:surface>
+        def Shader "S"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.58, 0.58, 0.64)
+            float inputs:metallic = 0.2
+            float inputs:roughness = 0.45
+            float inputs:opacity = 0.70
+            token outputs:surface
+        }
+    }
+
+    def Material "WaterMat"
+    {
+        token outputs:surface.connect = </Root/WaterMat/S.outputs:surface>
+        def Shader "S"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.04, 0.30, 0.90)
+            float inputs:metallic = 0.0
+            float inputs:roughness = 0.04
+            float inputs:opacity = 0.90
+            token outputs:surface
+        }
+    }
+}`;
+}
+
+// スライダー表示とSVG断面図を更新
+function updateUI() {
+  const od   = parseInt(odSlider.value);
+  const len  = parseInt(lenSlider.value);
+  const wall = calcWall(od);
+  const id   = parseFloat((od - wall * 2).toFixed(1));
+
+  document.getElementById('od-val').textContent   = od;
+  document.getElementById('len-val').textContent  = len;
+  document.getElementById('wall-val').textContent = wall;
+  document.getElementById('id-val').textContent   = id;
+
+  // スライダーグラデーション更新
+  const setPct = (el, min, max, val) =>
+    el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
+  setPct(odSlider,  13, 200, od);
+  setPct(lenSlider, 100, 3000, len);
+
+  // SVG断面更新（外径は常に表示半径65pxに正規化、肉厚を比率で表示）
+  const R      = 65;
+  const wallPx = Math.max(4, (wall / (od / 2)) * R);
+  const waterR = Math.max(2, R - wallPx);
+  document.getElementById('svg-pipe').setAttribute('r', R - wallPx / 2);
+  document.getElementById('svg-pipe').setAttribute('stroke-width', wallPx);
+  document.getElementById('svg-water').setAttribute('r', waterR);
+}
+
+// USDZ blob URLを生成してar-linkのhrefを更新
+let currentBlobUrl = null;
+let regenTimer     = null;
+
+async function regenerateUSDZ() {
+  if (typeof JSZip === 'undefined') {
+    statusEl.textContent = 'JSZipの読み込みに失敗しました。ネット接続を確認してください。';
+    return;
+  }
+
+  const od  = parseInt(odSlider.value);
+  const len = parseInt(lenSlider.value);
+
+  try {
+    const usda = generateUSDA(od, len);
+    const zip  = new JSZip();
+    zip.file("pipe.usda", usda, { compression: "STORE" });
+
+    const buf  = await zip.generateAsync({ type: "arraybuffer", compression: "STORE" });
+    const blob = new Blob([buf], { type: "model/vnd.usdz+zip" });
+
+    const prev = currentBlobUrl;
+    currentBlobUrl = URL.createObjectURL(blob);
+    arLink.href = currentBlobUrl;
+
+    if (prev) setTimeout(() => URL.revokeObjectURL(prev), 2000);
+
+    arLink.classList.remove('loading');
+    btnLabel.textContent = 'ARで見る';
+    statusEl.textContent = `外径 ${od}mm × 長さ ${len}mm のパイプを準備しました`;
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+}
+
+function scheduleRegen() {
+  arLink.classList.add('loading');
+  btnLabel.textContent = '更新中…';
+  clearTimeout(regenTimer);
+  regenTimer = setTimeout(regenerateUSDZ, 350);
+}
+
+odSlider.addEventListener('input',  () => { updateUI(); scheduleRegen(); });
+lenSlider.addEventListener('input', () => { updateUI(); scheduleRegen(); });
+
+// 初期化
+updateUI();
+regenerateUSDZ();
+</script>
 </body>
 </html>
