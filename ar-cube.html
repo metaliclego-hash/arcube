@@ -2,577 +2,322 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>AR Cube 500mm</title>
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-      overflow: hidden;
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
+
+  <!-- iOS AR Quick Look のトリガーに必要 -->
+  <script async src="https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three":          "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/":  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     }
-    #bg-video {
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    }
+
+    /* カメラ映像（背景） */
+    #camera {
       position: fixed; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover; z-index: 0;
     }
-    #three-canvas { position: fixed; inset: 0; z-index: 10; }
-    #ui { position: fixed; inset: 0; z-index: 20; pointer-events: none; display: none; }
 
-    /* ── Start Screen ── */
-    #start-screen {
-      position: fixed; inset: 0; z-index: 100;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 2rem;
-      background: linear-gradient(160deg, #0d1117, #161b22);
-      color: #e6edf3;
-    }
-    .logo { font-size: 4rem; margin-bottom: 1rem; }
-    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .subtitle { font-size: 0.9rem; color: #8b949e; text-align: center; line-height: 1.7; margin-bottom: 1.8rem; }
-    .info-box {
-      width: 100%; max-width: 360px;
-      background: #161b22; border: 1px solid #30363d;
-      border-radius: 14px; padding: 1rem 1.2rem;
-      margin-bottom: 1.5rem;
-      font-size: 0.82rem; color: #8b949e; line-height: 1.8;
-    }
-    .info-box b { color: #e6edf3; }
-    #start-btn {
-      width: 100%; max-width: 360px;
-      background: #238636; color: #fff;
-      border: none; padding: 0.9rem;
-      border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;
-    }
-    #start-btn:disabled { background: #484f58; cursor: not-allowed; }
-    #start-btn:not(:disabled):active { background: #196127; }
-    #err {
-      margin-top: 1rem; font-size: 0.82rem; color: #f85149;
-      text-align: center; max-width: 360px; line-height: 1.5; white-space: pre-wrap;
+    /* Three.js プレビュー */
+    #preview {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1; touch-action: none;
     }
 
-    /* ── AR UI ── */
-    #top-bar {
-      position: absolute; top: env(safe-area-inset-top, 16px);
-      left: 0; right: 0;
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 16px; pointer-events: auto;
+    /* model-viewer は DOM に存在させるが画面に出さない */
+    model-viewer {
+      position: fixed; width: 1px; height: 1px;
+      bottom: -2px; right: -2px;
+      opacity: 0; pointer-events: none;
     }
-    .badge {
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      color: #fff; padding: 7px 14px; border-radius: 20px; font-size: 0.8rem;
-      border: 1px solid rgba(255,255,255,0.12);
+
+    /* ── ボトムパネル ── */
+    #panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      background: rgba(8, 10, 22, 0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 20px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
     }
-    #exit-btn {
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      color: #fff; border: 1px solid rgba(255,255,255,0.12);
-      padding: 7px 16px; border-radius: 20px; font-size: 0.82rem; cursor: pointer;
+
+    #cube-label {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.4px;
     }
-    #bottom-panel {
-      position: absolute; bottom: env(safe-area-inset-bottom, 28px);
-      left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-      pointer-events: auto; width: 90%; max-width: 400px;
+
+    /*
+      ★ AR トリガー ★
+      <a rel="ar"> をユーザーが直接タップ → iOS Safari が ARKit で AR Quick Look を起動。
+      href に GLB の blob URL をセットすることで床検出・実寸配置が動く。
+      - JavaScript から .click() では起動しない（iOS のセキュリティ制限）
+      - iOS AR Quick Look は最初の子 <img> をサムネとして使うため必須
+    */
+    #ar-link {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; max-width: 360px;
+      padding: 16px;
+      background: #007AFF; color: #fff;
+      border-radius: 14px;
+      font-size: 17px; font-weight: 600;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      transition: opacity 0.1s;
     }
+    #ar-link:active { opacity: 0.75; }
+
+    /* GLB 未生成のうちはタップ無効 */
+    #ar-link[data-ready="false"] {
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.30);
+      pointer-events: none;
+    }
+
+    /* iOS AR Quick Look 必須の非表示サムネ */
+    #ar-thumb {
+      position: absolute; left: 0; top: 0;
+      width: 1px; height: 1px; opacity: 0.01;
+      pointer-events: none;
+    }
+
     #status {
-      background: rgba(0,0,0,0.60);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      color: #fff; padding: 10px 20px; border-radius: 22px; font-size: 0.88rem;
-      text-align: center; border: 1px solid rgba(255,255,255,0.10); width: 100%;
+      font-size: 12px; color: rgba(255,255,255,0.35);
+      text-align: center; min-height: 16px;
     }
-    #btn-row { display: flex; gap: 10px; }
-    #calib-panel {
-      width: 100%;
-      background: rgba(0,0,0,0.62);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px; padding: 10px 14px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .sl-row {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .sl-row label { color: #aaa; font-size: 0.75rem; width: 60px; flex-shrink: 0; }
-    .sl-row input[type=range] {
-      flex: 1; -webkit-appearance: none; appearance: none;
-      height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.25); outline: none;
-    }
-    .sl-row input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 22px; height: 22px;
-      border-radius: 50%; background: #fff; cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-    }
-    .sl-val { color: #fff; font-size: 0.75rem; width: 42px; text-align: right; flex-shrink: 0; }
-    .ar-btn {
-      background: rgba(0,0,0,0.58);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      color: #fff; border: 1px solid rgba(255,255,255,0.18);
-      padding: 9px 18px; border-radius: 22px; font-size: 0.85rem; cursor: pointer;
-    }
-    .ar-btn:active { background: rgba(255,255,255,0.18); }
-    .hidden { display: none !important; }
 
-    #crosshair {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 28px; height: 28px; pointer-events: none; opacity: 0.35;
+    .spin { display: inline-block; }
+    .spin::after {
+      content: '';
+      display: inline-block; width: 10px; height: 10px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 6px; vertical-align: middle;
     }
-    #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #fff; }
-    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-    #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<video id="bg-video" autoplay playsinline muted></video>
-<canvas id="three-canvas"></canvas>
+<!-- カメラ映像（背景） -->
+<video id="camera" autoplay playsinline muted></video>
 
-<div id="ui">
-  <div id="top-bar">
-    <span class="badge">📦 500mm キューブ</span>
-    <button id="exit-btn" onclick="stopAR()">✕ 終了</button>
-  </div>
-  <div id="crosshair"></div>
-  <div id="bottom-panel">
-    <div id="status">タップしてキューブを配置</div>
-    <div id="calib-panel">
-      <div class="sl-row">
-        <label>FOV</label>
-        <input type="range" min="40" max="100" value="70" oninput="onParam('fov',this.value)">
-        <span class="sl-val" id="v-fov">70°</span>
-      </div>
-      <div class="sl-row">
-        <label>カメラ高さ</label>
-        <input type="range" min="30" max="300" value="130" oninput="onParam('cy',this.value)">
-        <span class="sl-val" id="v-cy">1.3m</span>
-      </div>
-      <div class="sl-row">
-        <label>SLERP</label>
-        <input type="range" min="1" max="10" value="9" oninput="onParam('slerp',this.value)">
-        <span class="sl-val" id="v-slerp">0.9</span>
-      </div>
-      <div class="sl-row">
-        <label>β オフセット</label>
-        <input type="range" min="-30" max="30" value="0" oninput="onParam('boff',this.value)">
-        <span class="sl-val" id="v-boff">0°</span>
-      </div>
-    </div>
-    <div id="btn-row">
-      <button class="ar-btn hidden" id="btn-rl"    onclick="rotateCube(-1)">← 回転</button>
-      <button class="ar-btn hidden" id="btn-rr"    onclick="rotateCube( 1)">回転 →</button>
-      <button class="ar-btn hidden" id="btn-reset" onclick="resetCube()">リセット</button>
-    </div>
-  </div>
+<!-- Three.js プレビュー -->
+<canvas id="preview"></canvas>
+
+<!-- 非表示の model-viewer（iOS 仕様上の要件） -->
+<model-viewer id="mv" ar ar-modes="quick-look" ar-scale="fixed" camera-controls></model-viewer>
+
+<!-- UI パネル -->
+<div id="panel">
+  <div id="cube-label">500mm × 500mm × 500mm の立方体</div>
+
+  <a id="ar-link" rel="ar" href="#" data-ready="false">
+    <!--
+      iOS AR Quick Look は <a rel="ar"> の最初の子 <img> をサムネとして参照する。
+      存在しないと Quick Look が起動しない場合があるため 2×2 の透明 PNG を埋め込む。
+    -->
+    <img id="ar-thumb"
+         src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAADklEQVQI12P4z8BQDwAEgAF/QualIQAAAABJRU5ErkJggg=="
+         alt="" width="2" height="2">
+    📦 AR で実寸配置
+  </a>
+
+  <div id="status"><span class="spin">準備中</span></div>
 </div>
 
-<div id="start-screen">
-  <div class="logo">📦</div>
-  <h1>AR Cube 500mm</h1>
-  <p class="subtitle">カメラ映像に 500mm の立方体を重ねて表示します。<br>WebXR 不要・Safari / Chrome 対応</p>
-  <div class="info-box">
-    <b>使い方</b><br>
-    ① iPad を床に向けてタップ → キューブ配置<br>
-    ② カメラを動かしても床に固定されたまま<br>
-    ③ ドラッグで移動 ／ ← → で回転
-  </div>
-  <button id="start-btn" onclick="startAR()">読み込み中...</button>
-  <div id="err"></div>
-</div>
+<script type="module">
+import * as THREE       from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-<script>
-(function () {
-  var btn = document.getElementById('start-btn');
-  btn.disabled = true;
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
-  s.onload  = function () { btn.disabled = false; btn.textContent = '▶ AR を開始'; };
-  s.onerror = function () {
-    document.getElementById('err').textContent = 'Three.js の読み込みに失敗しました。\nWi-Fi を確認して再読み込みしてください。';
-    btn.textContent = '読み込み失敗';
-  };
-  document.head.appendChild(s);
+const SIZE = 0.5; // 500 mm = 0.5 m（GLB はメートル単位）
+
+/* ══════════════════════════════════════════════════════
+   Three.js プレビュー（カメラ映像の上に透過表示）
+══════════════════════════════════════════════════════ */
+const canvas   = document.getElementById('preview');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene  = new THREE.Scene();
+const cam3d  = new THREE.PerspectiveCamera(55, 1, 0.01, 100);
+cam3d.position.set(0.7, 0.55, 0.9);
+
+/* 照明 */
+scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
+sun.position.set(2, 5, 3);
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
+
+/* 床グリッド */
+const grid = new THREE.GridHelper(3, 6, 0xffffff, 0xffffff);
+grid.material.opacity = 0.09; grid.material.transparent = true;
+scene.add(grid);
+
+/* キューブ（プレビュー用） */
+const cubeGeo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+const cubeMesh = new THREE.Mesh(cubeGeo, new THREE.MeshStandardMaterial({
+  color: 0x1565C0, roughness: 0.35, metalness: 0.2,
+  transparent: true, opacity: 0.88,
+}));
+cubeMesh.position.y = SIZE / 2;
+scene.add(cubeMesh);
+
+/* エッジライン */
+const edgeMesh = new THREE.LineSegments(
+  new THREE.EdgesGeometry(cubeGeo),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
+);
+edgeMesh.position.y = SIZE / 2;
+scene.add(edgeMesh);
+
+/* 影ディスク */
+const discGeo = new THREE.CircleGeometry(SIZE * 0.56, 32);
+discGeo.rotateX(-Math.PI / 2);
+scene.add(new THREE.Mesh(discGeo,
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+));
+
+/* OrbitControls（ドラッグで360°確認） */
+const controls = new OrbitControls(cam3d, canvas);
+controls.target.set(0, SIZE / 2, 0);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.07;
+controls.minDistance     = 0.3;
+controls.maxDistance     = 3.0;
+controls.update();
+
+function resize() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  cam3d.aspect = window.innerWidth / window.innerHeight;
+  cam3d.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  renderer.render(scene, cam3d);
 })();
-</script>
 
-<script>
-'use strict';
+/* コントロールパネルのタッチを OrbitControls に漏らさない */
+document.getElementById('panel').addEventListener('touchstart', e => e.stopPropagation(), { passive: false });
+document.getElementById('panel').addEventListener('mousedown',  e => e.stopPropagation());
 
-/* ─── アプリ状態 ─────────────────────────────────────────────── */
-var renderer, scene, camera, animId;
-var cubeGroup;
-var cubeRotY    = 0;
-var cubeVisible = false;
-var cameraStream = null;
-
-/* タッチ */
-var isDragging     = false;
-var lastTouch      = null;
-var touchStartPos  = null;
-var touchStartTime = 0;
-var TAP_MS = 250;
-var TAP_PX = 12;
-
-/* キャリブレーションパラメータ */
-var paramFov   = 70;   /* Three.js カメラ垂直FOV（度） */
-var paramCY    = 1.3;  /* カメラ高さ（m） */
-var paramSlerp = 0.9;  /* 四元数スムージング係数 */
-var paramBoff  = 0;    /* ジャイロ β オフセット（度） */
-
-/* ジャイロ（生の値） */
-var orientGranted = false;
-var orientAlpha   = 0;
-var orientBeta    = 90;   // デバイスを立てて持った状態
-var orientGamma   = 0;
-
-/* Three.js ジャイロ用オブジェクト — initThree() 内で生成 */
-var _smoothQ = null;   // カメラ四元数の平滑化バッファ
-var _euler   = null;
-var _qTmp    = null;
-var _q1      = null;   // -90° around X: カメラがデバイス背面を向く補正
-var _zee     = null;
-var _qZee    = null;
-var _orientInitialized = false;
-
-/* ─── ユーティリティ ────────────────────────────────────────── */
-function showErr(msg) {
-  document.getElementById('err').textContent = msg;
-  var btn = document.getElementById('start-btn');
-  btn.disabled = false;
-  btn.textContent = '▶ もう一度試す';
-}
-function setStatus(msg) {
-  var el = document.getElementById('status');
-  if (el) el.textContent = msg;
-}
-function showCubeButtons(show) {
-  ['btn-rl','btn-rr','btn-reset'].forEach(function(id) {
-    document.getElementById(id).classList.toggle('hidden', !show);
-  });
-}
-
-/* ─── startAR ───────────────────────────────────────────────── */
-async function startAR() {
-  var btn = document.getElementById('start-btn');
-  btn.disabled = true;
-  btn.textContent = '起動中...';
-  document.getElementById('err').textContent = '';
-
-  if (typeof THREE === 'undefined') {
-    showErr('Three.js がまだ読み込まれていません。\nしばらく待ってもう一度タップしてください。');
-    return;
-  }
-
-  /* ① DeviceOrientation 許可（iOS: ユーザー操作の直後に呼ぶ必要がある） */
-  orientGranted = false;
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      var res = await DeviceOrientationEvent.requestPermission();
-      orientGranted = (res === 'granted');
-    } catch (_) {}
-  } else {
-    /* Android / デスクトップ Chrome はパーミッション不要 */
-    orientGranted = true;
-  }
-
-  /* ② カメラ */
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showErr('カメラ API が使えません。\nHTTPS で開いているか確認してください。');
-    return;
-  }
+/* ══════════════════════════════════════════════════════
+   カメラ起動
+══════════════════════════════════════════════════════ */
+async function startCamera() {
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
-      audio: false
-    });
+    document.getElementById('camera').srcObject =
+      await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, audio: false,
+      });
+  } catch (_) {
+    document.getElementById('camera').style.display = 'none';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   GLB 生成 → blob URL → <a rel="ar"> にセット
+
+   AR Quick Look 起動の仕組み:
+   1. Three.js で 500mm キューブを作る（スケール = 0.001、GLB はメートル単位）
+   2. GLTFExporter でバイナリ GLB に変換
+   3. Blob → URL.createObjectURL() で blob:// URL を作成
+   4. <a rel="ar"> の href に blob URL をセット
+   5. ユーザーが直接タップ → iOS Safari が ARKit を呼び出して
+      AR Quick Look を起動（床検出・実寸表示を自動で行う）
+══════════════════════════════════════════════════════ */
+const arLink   = document.getElementById('ar-link');
+const statusEl = document.getElementById('status');
+let blobURL    = null;
+
+async function generateGLB() {
+  statusEl.innerHTML = '<span class="spin">GLB 生成中</span>';
+
+  try {
+    /* AR 用シーン（メートル単位） */
+    const arScene = new THREE.Scene();
+
+    /* キューブ本体 */
+    const geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: 0x1565C0, roughness: 0.35, metalness: 0.2,
+    }));
+    mesh.position.y = SIZE / 2; /* 底面を y=0（床面）に合わせる */
+    arScene.add(mesh);
+
+    /* エッジライン（GLB でも表示される） */
+    arScene.add(Object.assign(
+      new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0xffffff })
+      ),
+      { position: new THREE.Vector3(0, SIZE / 2, 0) }
+    ));
+
+    /* GLB バイナリに変換 */
+    const raw = await new Promise((resolve, reject) =>
+      new GLTFExporter().parse(arScene, resolve, reject, { binary: true })
+    );
+    const buffer = raw instanceof ArrayBuffer ? raw : new Uint8Array(raw).buffer;
+
+    /* 古い blob を解放して新規作成 */
+    if (blobURL) URL.revokeObjectURL(blobURL);
+    blobURL = URL.createObjectURL(new Blob([buffer], { type: 'model/gltf-binary' }));
+
+    /* ★ <a rel="ar"> に blob URL をセット → ユーザーのタップで AR 起動 ★ */
+    arLink.href          = blobURL;
+    arLink.dataset.ready = 'true';
+
+    /* model-viewer にも渡す（仕様上の要素） */
+    document.getElementById('mv').src = blobURL;
+
+    statusEl.textContent = '準備完了 ✓  ボタンをタップして AR に配置';
   } catch (e) {
-    showErr('カメラエラー: ' + e.name + '\n' + e.message);
+    statusEl.textContent = 'エラー: ' + e.message;
+    console.error(e);
+  }
+}
+
+arLink.addEventListener('click', e => {
+  if (arLink.dataset.ready !== 'true') {
+    e.preventDefault();
     return;
   }
-  var video = document.getElementById('bg-video');
-  video.srcObject = cameraStream;
-  try { await video.play(); } catch (_) {}
+  /* preventDefault しない → iOS が rel="ar" を処理して AR Quick Look を起動 */
+  statusEl.textContent = 'AR Quick Look 起動中...';
+});
 
-  /* ③ ジャイロ登録 */
-  if (orientGranted) {
-    window.addEventListener('deviceorientation', onOrientation, true);
-  }
-
-  /* ④ Three.js 初期化 */
-  try { initThree(); } catch (e) {
-    showErr('3D 初期化エラー: ' + e.message);
-    return;
-  }
-
-  /* ⑤ タッチ */
-  var canvas = document.getElementById('three-canvas');
-  canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
-  canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
-  canvas.addEventListener('touchend',    onTouchEnd,    { passive: false });
-  canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
-  window.addEventListener('resize', onResize);
-
-  /* ⑥ 表示切替 */
-  document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('ui').style.display = 'block';
-  setStatus('床に向けてタップでキューブを配置');
-  animate();
-}
-
-/* ─── stopAR ────────────────────────────────────────────────── */
-function stopAR() {
-  cancelAnimationFrame(animId);
-  if (renderer) { renderer.dispose(); renderer = null; }
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(function(t) { t.stop(); });
-    cameraStream = null;
-  }
-  document.getElementById('bg-video').srcObject = null;
-  window.removeEventListener('deviceorientation', onOrientation, true);
-  window.removeEventListener('resize', onResize);
-  var canvas = document.getElementById('three-canvas');
-  canvas.removeEventListener('touchstart',  onTouchStart);
-  canvas.removeEventListener('touchmove',   onTouchMove);
-  canvas.removeEventListener('touchend',    onTouchEnd);
-  canvas.removeEventListener('touchcancel', onTouchCancel);
-  cubeVisible = false; cubeRotY = 0;
-  _smoothQ = _euler = _qTmp = _q1 = _zee = _qZee = null;
-  _orientInitialized = false;
-  showCubeButtons(false);
-  document.getElementById('ui').style.display = 'none';
-  document.getElementById('start-screen').style.display = 'flex';
-  var btn = document.getElementById('start-btn');
-  btn.disabled = false; btn.textContent = '▶ AR を開始';
-}
-
-/* ─── initThree ─────────────────────────────────────────────── */
-function initThree() {
-  scene  = new THREE.Scene();
-  var W  = window.innerWidth, H = window.innerHeight;
-
-  camera = new THREE.PerspectiveCamera(70, W / H, 0.01, 50); /* iPad 広角カメラの実FOVに合わせる */
-  camera.position.set(0, 1.3, 0);
-  /* 初期向き: 少し前下方向（ジャイロが来るまでの仮の向き） */
-  camera.lookAt(0, 0, -1.5);
-
-  var canvas = document.getElementById('three-canvas');
-  renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0);
-
-  /* 照明 */
-  scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-  var sun = new THREE.DirectionalLight(0xfff5e0, 2.0);
-  sun.position.set(2, 5, 3); scene.add(sun);
-  scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x4a3728, 0.5));
-
-  /* 床グリッド */
-  var grid = new THREE.GridHelper(10, 20, 0xffffff, 0xffffff);
-  grid.material.opacity = 0.12; grid.material.transparent = true;
-  scene.add(grid);
-
-  /* キューブ 500mm */
-  cubeGroup = new THREE.Group();
-  cubeGroup.visible = false;
-  scene.add(cubeGroup);
-  var SIZE = 0.5;
-  var geo  = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
-  cubeGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-    color: 0x1565C0, roughness: 0.35, metalness: 0.2, transparent: true, opacity: 0.90
-  })));
-  cubeGroup.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0xffffff })
-  ));
-  var discGeo = new THREE.CircleGeometry(0.28, 32);
-  discGeo.rotateX(-Math.PI / 2);
-  var disc = new THREE.Mesh(discGeo,
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 }));
-  disc.position.y = -SIZE / 2 + 0.001;
-  cubeGroup.add(disc);
-
-  /* ジャイロ用 Three.js オブジェクトを生成（ここで初めて THREE.* を使う） */
-  _smoothQ = camera.quaternion.clone(); // 初期値をカメラの向きに合わせる
-  _euler   = new THREE.Euler();
-  _qTmp    = new THREE.Quaternion();
-  _q1      = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2); // -90° around X
-  _zee     = new THREE.Vector3(0, 0, 1);
-  _qZee    = new THREE.Quaternion();
-}
-
-/* ─── DeviceOrientation ─────────────────────────────────────── */
-function onOrientation(e) {
-  if (e.alpha != null) orientAlpha = e.alpha;
-  if (e.beta  != null) orientBeta  = e.beta;
-  if (e.gamma != null) orientGamma = e.gamma;
-}
-
-/*
- * Three.js DeviceOrientationControls の正しい公式:
- *   euler  = (beta, alpha, -gamma) in YXZ
- *   quat   = fromEuler(euler)
- *   quat  *= q1          ← カメラがデバイス天面でなく背面を向く補正
- *   quat  *= qZee        ← 画面の向き（縦横）補正
- *
- * 前回の実装は premultiply（左側から掛ける）になっていたため不正確だった。
- * 正しくは右側から multiply する。
- */
-function applyCameraOrientation() {
-  if (!orientGranted || !_smoothQ || !camera) return;
-
-  var screenOrient = ((window.orientation || 0) * Math.PI) / 180;
-
-  _euler.set(
-    THREE.MathUtils.degToRad(orientBeta + paramBoff),
-    THREE.MathUtils.degToRad(orientAlpha),
-    -THREE.MathUtils.degToRad(orientGamma),
-    'YXZ'
-  );
-  _qTmp.setFromEuler(_euler);
-  _qTmp.multiply(_q1);                                        // 右から掛ける
-  _qTmp.multiply(_qZee.setFromAxisAngle(_zee, -screenOrient)); // 右から掛ける
-
-  if (!_orientInitialized) {
-    _smoothQ.copy(_qTmp);
-    _orientInitialized = true;
-  } else {
-    /* ラグをなくすため係数を 1.0 に近づける。
-       iOS の DeviceOrientation はOS側で既にフィルタ済みなので
-       追加スムージングによるラグの方が問題になる。 */
-    _smoothQ.slerp(_qTmp, paramSlerp);
-  }
-  camera.quaternion.copy(_smoothQ);
-}
-
-/* ─── レンダーループ ─────────────────────────────────────────── */
-function animate() {
-  animId = requestAnimationFrame(animate);
-  if (!renderer) return;
-  applyCameraOrientation();
-  renderer.render(scene, camera);
-}
-
-/* ─── タッチ ─────────────────────────────────────────────────── */
-function onTouchStart(e) {
-  e.preventDefault();
-  if (e.touches.length !== 1) return;
-  var t = e.touches[0];
-  touchStartPos  = { x: t.clientX, y: t.clientY };
-  touchStartTime = Date.now();
-  lastTouch      = { x: t.clientX, y: t.clientY };
-  isDragging     = false;
-}
-function onTouchMove(e) {
-  e.preventDefault();
-  if (e.touches.length !== 1 || !touchStartPos) return;
-  var t  = e.touches[0];
-  var dx = t.clientX - touchStartPos.x;
-  var dy = t.clientY - touchStartPos.y;
-  if (!isDragging && Math.sqrt(dx*dx + dy*dy) > TAP_PX) isDragging = true;
-  if (isDragging && cubeVisible) {
-    var d = screenDeltaToWorld(t.clientX - lastTouch.x, t.clientY - lastTouch.y);
-    cubeGroup.position.x += d.x;
-    cubeGroup.position.z += d.z;
-  }
-  lastTouch = { x: t.clientX, y: t.clientY };
-}
-function onTouchEnd(e) {
-  e.preventDefault();
-  if (!isDragging && (Date.now() - touchStartTime) < TAP_MS && touchStartPos) {
-    placeCubeAtScreen(touchStartPos.x, touchStartPos.y);
-  }
-  isDragging = false; touchStartPos = null; lastTouch = null;
-}
-function onTouchCancel(e) {
-  e.preventDefault();
-  isDragging = false; touchStartPos = null; lastTouch = null;
-}
-
-/* ─── タップ位置 → 床 (y=0) にキューブを置く ─────────────────── */
-function placeCubeAtScreen(sx, sy) {
-  if (!camera || !cubeGroup) return;
-  var raycaster = new THREE.Raycaster();
-  var ndc = new THREE.Vector2(
-    (sx / window.innerWidth)  *  2 - 1,
-    (sy / window.innerHeight) * -2 + 1
-  );
-  raycaster.setFromCamera(ndc, camera);
-  var hit = new THREE.Vector3();
-  if (raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit)) {
-    cubeGroup.position.set(hit.x, 0.25, hit.z);
-    if (!cubeVisible) {
-      cubeVisible = true;
-      cubeGroup.visible = true;
-      showCubeButtons(true);
-    }
-    setStatus('ドラッグで移動 ｜ タップで再配置');
-  }
-}
-
-/* ─── ドラッグ量 → ワールド XZ 移動 ─────────────────────────── */
-function screenDeltaToWorld(dsx, dsy) {
-  if (!camera || !cubeGroup) return { x: 0, z: 0 };
-  var forward = new THREE.Vector3();
-  var right   = new THREE.Vector3();
-  camera.getWorldDirection(forward);
-  forward.y = 0;
-  if (forward.length() < 0.001) return { x: 0, z: 0 };
-  forward.normalize();
-  right.crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
-  var dist  = camera.position.distanceTo(cubeGroup.position);
-  var scale = (2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / window.innerHeight;
-  return {
-    x: (-right.x * dsx + forward.x * dsy) * scale,
-    z: (-right.z * dsx + forward.z * dsy) * scale
-  };
-}
-
-/* ─── ボタン ─────────────────────────────────────────────────── */
-function rotateCube(dir) {
-  cubeRotY += dir * (Math.PI / 4);
-  cubeGroup.rotation.y = cubeRotY;
-}
-function resetCube() {
-  cubeVisible = false; cubeGroup.visible = false;
-  cubeRotY = 0; cubeGroup.rotation.y = 0;
-  showCubeButtons(false);
-  setStatus('床に向けてタップでキューブを配置');
-}
-function onParam(key, raw) {
-  var n = Number(raw);
-  if (key === 'fov') {
-    paramFov = n;
-    document.getElementById('v-fov').textContent = n + '°';
-    if (camera) { camera.fov = n; camera.updateProjectionMatrix(); }
-  } else if (key === 'cy') {
-    paramCY = n / 100;
-    document.getElementById('v-cy').textContent = (n/100).toFixed(2) + 'm';
-    if (camera) camera.position.y = paramCY;
-  } else if (key === 'slerp') {
-    paramSlerp = n / 10;
-    document.getElementById('v-slerp').textContent = paramSlerp.toFixed(1);
-  } else if (key === 'boff') {
-    paramBoff = n;
-    document.getElementById('v-boff').textContent = n + '°';
-  }
-}
-function onResize() {
-  if (!renderer || !camera) return;
-  var W = window.innerWidth, H = window.innerHeight;
-  camera.aspect = W / H;
-  camera.updateProjectionMatrix();
-  renderer.setSize(W, H);
-}
+/* ══════════════════════════════════════════════════════
+   起動
+══════════════════════════════════════════════════════ */
+(async () => {
+  await startCamera();
+  await generateGLB();
+})();
 </script>
 </body>
 </html>
