@@ -68,7 +68,6 @@
     .info-label { font-size: 0.72rem; color: #445; margin-bottom: 0.2rem; }
     .info-val { font-size: 1rem; font-weight: 600; }
 
-    /* 地中モード トグル */
     .mode-row {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(0,0,0,0.2); border-radius: 12px;
@@ -92,7 +91,6 @@
     }
     .toggle-wrap input:checked + .toggle-track::after { transform: translateX(22px); }
 
-    /* 地中パラメータセクション */
     .ug-section {
       border-top: 1px solid rgba(100,160,255,0.15);
       padding-top: 1rem; margin-bottom: 1rem;
@@ -106,6 +104,15 @@
       background: rgba(0,0,0,0.25); border-radius: 14px;
       padding: 0.8rem 0.6rem; margin-bottom: 1rem;
     }
+
+    /* 埋設ビュートグル（地中モード内） */
+    .sub-mode-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(60,120,220,0.12); border: 1px solid rgba(100,160,255,0.2);
+      border-radius: 10px; padding: 0.6rem 0.9rem; margin-top: 0.2rem;
+    }
+    .sub-mode-label { font-size: 0.84rem; color: #99bbee; }
+    .sub-mode-hint { font-size: 0.68rem; color: #557; margin-top: 0.15rem; }
 
     .ar-btn {
       display: flex; align-items: center; justify-content: center; gap: 0.6rem;
@@ -206,6 +213,18 @@
         <div class="info-val" style="font-size:0.9rem"><span id="tlen-val">500</span> mm</div>
       </div>
     </div>
+
+    <!-- 埋設ビュー サブトグル -->
+    <div class="sub-mode-row">
+      <div>
+        <div class="sub-mode-label">埋設ビュー（地表付き）</div>
+        <div class="sub-mode-hint">地表面を表示し、管が地中に埋まった断面を表現</div>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="buried-toggle" onchange="onBuriedChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
   </div>
 
   <a id="ar-link" class="ar-btn loading" rel="ar" href="#">
@@ -267,7 +286,8 @@ async function buildDirtTexture() {
 }
 
 // ── 状態 ─────────────────────────────────────────────────────────────────
-let isUG = false;
+let isUG     = false;
+let isBuried = false;
 
 const odSlider     = document.getElementById('od');
 const lenSlider    = document.getElementById('len');
@@ -301,13 +321,6 @@ function updateUI() {
   setPct(odSlider,  10, 2000, od);
   setPct(lenSlider, 100, 3000, len);
 
-  const R = 65;
-  const wallPx = Math.max(4, (wall / (od / 2)) * R);
-  const waterR = Math.max(2, R - wallPx);
-  document.getElementById('svg-pipe').setAttribute('r', R - wallPx / 2);
-  document.getElementById('svg-pipe').setAttribute('stroke-width', wallPx);
-  document.getElementById('svg-water').setAttribute('r', waterR);
-
   if (isUG) {
     const burial = parseInt(burialSlider.value);
     const width  = parseInt(widthSlider.value);
@@ -324,8 +337,17 @@ function updateUI() {
 
 function onModeChange() {
   isUG = document.getElementById('ug-toggle').checked;
+  if (!isUG) {
+    isBuried = false;
+    document.getElementById('buried-toggle').checked = false;
+  }
   document.getElementById('ug-section').style.display = isUG ? 'block' : 'none';
   updateUI();
+  scheduleRegen();
+}
+
+function onBuriedChange() {
+  isBuried = document.getElementById('buried-toggle').checked;
   scheduleRegen();
 }
 
@@ -362,36 +384,100 @@ function buildTubeMesh(outerR, innerR, H, N) {
   };
 }
 
-// ── メッシュ生成：溝（5面） ───────────────────────────────────────────────
-// L=長さ(X), W=幅(Z), D=深さ(Y). 地面 Y=0, 底面 Y=-D.
-// 5面すべて溝の内側を向く（内向き法線）
+// ── メッシュ生成：溝（地中モード） L=長さ(X), W=幅(Z), D=深さ ─────────────
+// 地面Y=0、底面Y=−D。内向き法線（溝の内側が見える）
 function buildTrenchMesh(L, W, D) {
   const hL = L/2, hW = W/2;
-  const T  = 30; // テクスチャタイルサイズ(cm)
+  const T  = 30;
   const uL = L/T, uW = W/T, uD = D/T;
 
-  // 頂点 8個
   const pts = [
-    [-hL,  0, -hW], // 0  地面・前左
-    [-hL,  0,  hW], // 1  地面・後左
-    [ hL,  0, -hW], // 2  地面・前右
-    [ hL,  0,  hW], // 3  地面・後右
-    [-hL, -D, -hW], // 4  底面・前左
-    [-hL, -D,  hW], // 5  底面・後左
-    [ hL, -D, -hW], // 6  底面・前右
-    [ hL, -D,  hW], // 7  底面・後右
+    [-hL,  0, -hW], // 0
+    [-hL,  0,  hW], // 1
+    [ hL,  0, -hW], // 2
+    [ hL,  0,  hW], // 3
+    [-hL, -D, -hW], // 4
+    [-hL, -D,  hW], // 5
+    [ hL, -D, -hW], // 6
+    [ hL, -D,  hW], // 7
   ];
-
-  // 各面: [頂点インデックス4個, 法線3成分, UV4組]
-  // 法線の向き検証済み（cross product）
   const faceDefs = [
-    { vi:[5,7,6,4], n:[0, 1,0], uv:[[0,uW],[uL,uW],[uL,0],[0,0]] },       // 底面 → +Y
-    { vi:[0,4,6,2], n:[0, 0,1], uv:[[0,uD],[0,0],[uL,0],[uL,uD]] },       // 前壁 Z=-hW → +Z
-    { vi:[1,3,7,5], n:[0, 0,-1],uv:[[0,uD],[uL,uD],[uL,0],[0,0]] },       // 後壁 Z=+hW → -Z
-    { vi:[0,1,5,4], n:[1, 0,0], uv:[[0,uD],[uW,uD],[uW,0],[0,0]] },       // 左端 X=-hL → +X
-    { vi:[2,6,7,3], n:[-1,0,0], uv:[[uW,uD],[uW,0],[0,0],[0,uD]] },       // 右端 X=+hL → -X
+    { vi:[5,7,6,4], n:[0, 1,0], uv:[[0,uW],[uL,uW],[uL,0],[0,0]] },
+    { vi:[0,4,6,2], n:[0, 0,1], uv:[[0,uD],[0,0],[uL,0],[uL,uD]] },
+    { vi:[1,3,7,5], n:[0, 0,-1],uv:[[0,uD],[uL,uD],[uL,0],[0,0]] },
+    { vi:[0,1,5,4], n:[1, 0,0], uv:[[0,uD],[uW,uD],[uW,0],[0,0]] },
+    { vi:[2,6,7,3], n:[-1,0,0], uv:[[uW,uD],[uW,0],[0,0],[0,uD]] },
   ];
+  return buildMeshFromFaces(pts, faceDefs);
+}
 
+// ── メッシュ生成：溝（埋設ビュー） Y=0が溝底（ARの床）、Y=+Dが地表 ─────────
+// 内向き法線（上から見下ろして溝の内側が見える）
+function buildBuriedTrenchMesh(L, W, D) {
+  const hL = L/2, hW = W/2;
+  const T  = 30;
+  const uL = L/T, uW = W/T, uD = D/T;
+
+  const pts = [
+    [-hL, 0, -hW], // 0 底面・前左
+    [-hL, 0,  hW], // 1 底面・後左
+    [ hL, 0, -hW], // 2 底面・前右
+    [ hL, 0,  hW], // 3 底面・後右
+    [-hL, D, -hW], // 4 地表・前左
+    [-hL, D,  hW], // 5 地表・後左
+    [ hL, D, -hW], // 6 地表・前右
+    [ hL, D,  hW], // 7 地表・後右
+  ];
+  // 法線はcross積で検証済み（すべて溝内側向き）
+  const faceDefs = [
+    { vi:[0,1,3,2], n:[0, 1,0], uv:[[0,0],[0,uW],[uL,uW],[uL,0]] },      // 底面 +Y
+    { vi:[2,6,4,0], n:[0, 0,1], uv:[[uL,0],[uL,uD],[0,uD],[0,0]] },      // 前壁 +Z
+    { vi:[5,7,3,1], n:[0, 0,-1],uv:[[0,uD],[uL,uD],[uL,0],[0,0]] },      // 後壁 -Z
+    { vi:[4,5,1,0], n:[1, 0,0], uv:[[0,uD],[uW,uD],[uW,0],[0,0]] },      // 左端 +X
+    { vi:[2,3,7,6], n:[-1,0,0], uv:[[0,0],[uW,0],[uW,uD],[0,uD]] },      // 右端 -X
+  ];
+  return buildMeshFromFaces(pts, faceDefs);
+}
+
+// ── メッシュ生成：地表フレーム（埋設ビュー用） ───────────────────────────
+// Y=Y0 に、穴(L×W)あきの矩形フレームを生成。外周はEXT(cm)拡張。
+// 法線+Y（上向き）、DirtMat用UV。
+function buildGroundFrame(L, W, Y0, ext) {
+  const hL = L/2, hW = W/2;
+  const eL = hL + ext, eW = hW + ext;
+  const T  = 30;
+
+  // 4×4格子（Z行×X列），すべてY=Y0
+  const zR = [-eW, -hW,  hW, eW];
+  const xC = [-eL, -hL,  hL, eL];
+  const pts = [];
+  for (const z of zR) for (const x of xC) pts.push([x, Y0, z]);
+  // pts[r*4+c] = (xC[c], Y0, zR[r])
+
+  const counts=[], indices=[], norms=[], uvs=[];
+  // 3×3格子のクワッド、中央穴(r=1,c=1)をスキップ
+  // クワッド [a,b,e,d] = [r*4+c, (r+1)*4+c, (r+1)*4+c+1, r*4+c+1] → +Y法線（検証済み）
+  for (let r=0; r<3; r++) {
+    for (let c=0; c<3; c++) {
+      if (r===1 && c===1) continue;
+      const a = r*4+c, b = (r+1)*4+c, e = (r+1)*4+c+1, d = r*4+c+1;
+      counts.push(4);
+      indices.push(a, b, e, d);
+      for (let k=0;k<4;k++) norms.push([0, 1, 0]);
+      for (const vi of [a, b, e, d]) uvs.push([pts[vi][0]/T, pts[vi][2]/T]);
+    }
+  }
+
+  return {
+    pStr: pts.map(([x,y,z])=>`(${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)})`).join(', '),
+    cStr: counts.join(', '),
+    iStr: indices.join(', '),
+    nStr: norms.map(([x,y,z])=>`(${x.toFixed(6)}, ${y.toFixed(6)}, ${z.toFixed(6)})`).join(', '),
+    uvStr: uvs.map(([u,v])=>`(${u.toFixed(4)}, ${v.toFixed(4)})`).join(', '),
+  };
+}
+
+function buildMeshFromFaces(pts, faceDefs) {
   const counts=[], indices=[], norms=[], uvs=[];
   for (const f of faceDefs) {
     counts.push(4);
@@ -399,7 +485,6 @@ function buildTrenchMesh(L, W, D) {
     for (let k=0;k<4;k++) norms.push(f.n);
     for (const uv of f.uv) uvs.push(uv);
   }
-
   return {
     pStr: pts.map(([x,y,z])=>`(${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)})`).join(', '),
     cStr: counts.join(', '),
@@ -449,8 +534,8 @@ function generateUSDA(od, len) {
         }
     }`;
 
+  // ── 地上モード ──────────────────────────────────────────────────────────
   if (!isUG) {
-    // ── 地上モード ──
     return `#usda 1.0
 (
     defaultPrim = "Root"
@@ -490,14 +575,11 @@ ${waterMat}
 }`;
   }
 
-  // ── 地中モード ──
   const burial    = parseInt(burialSlider.value);
   const trenchW   = parseInt(widthSlider.value);
   const burialCm  = burial / 10;
   const trenchWCm = trenchW / 10;
-  const trenchDCm = (burial + od) / 10;   // 埋設深さ + 外径
-  const pipeY     = -(burialCm + outerR);  // 管中心のY座標
-  const trench    = buildTrenchMesh(H, trenchWCm, trenchDCm);
+  const trenchDCm = (burial + od) / 10;
 
   const dirtMat = `
     def Material "DirtMat"
@@ -528,7 +610,14 @@ ${waterMat}
         }
     }`;
 
-  return `#usda 1.0
+  // ── 地中モード（ジオラマ） ───────────────────────────────────────────────
+  // バウンディングボックス底面がARの床に置かれる。
+  // 溝がY=0(上端)→Y=-D(底面)。溝のジオラマが床の上に浮いて見える。
+  if (!isBuried) {
+    const pipeY  = -(burialCm + outerR);
+    const trench = buildTrenchMesh(H, trenchWCm, trenchDCm);
+
+    return `#usda 1.0
 (
     defaultPrim = "Root"
     metersPerUnit = 0.01
@@ -581,6 +670,85 @@ ${pipeMat}
 ${waterMat}
 ${dirtMat}
 }`;
+  }
+
+  // ── 埋設ビュー ──────────────────────────────────────────────────────────
+  // バウンディングボックス底面(Y=0)がARの床に置かれる。
+  // 溝はY=0(底面=ARの床)→Y=+D(地表)。地表フレームがY=+Dに付く。
+  // ⇒ 管と溝はARの床から地表フレームまでの範囲に表示。
+  const pipeYBuried = burialCm + outerR;   // 管中心Y（ARの床から上方）
+  const trench      = buildBuriedTrenchMesh(H, trenchWCm, trenchDCm);
+  const ext         = Math.max(50, trenchWCm * 0.5); // 地表フレームの拡張量(cm)
+  const gFrame      = buildGroundFrame(H, trenchWCm, trenchDCm, ext);
+
+  return `#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 0.01
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Xform "PipeGroup"
+    {
+        double3 xformOp:translate = (0, ${pipeYBuried.toFixed(4)}, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+
+        def Mesh "Shell"
+        {
+            int[] faceVertexCounts = [${tube.cStr}]
+            int[] faceVertexIndices = [${tube.iStr}]
+            normal3f[] normals = [${tube.nStr}] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [${tube.pStr}]
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </Root/PipeMat>
+        }
+
+        def Cylinder "Water"
+        {
+            double height = ${H.toFixed(4)}
+            double radius = ${innerR.toFixed(4)}
+            uniform token axis = "X"
+            rel material:binding = </Root/WaterMat>
+        }
+    }
+
+    def Mesh "Trench"
+    {
+        int[] faceVertexCounts = [${trench.cStr}]
+        int[] faceVertexIndices = [${trench.iStr}]
+        normal3f[] normals = [${trench.nStr}] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [${trench.pStr}]
+        texCoord2f[] primvars:st = [${trench.uvStr}] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        rel material:binding = </Root/DirtMat>
+    }
+
+    def Mesh "GroundFrame"
+    {
+        int[] faceVertexCounts = [${gFrame.cStr}]
+        int[] faceVertexIndices = [${gFrame.iStr}]
+        normal3f[] normals = [${gFrame.nStr}] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [${gFrame.pStr}]
+        texCoord2f[] primvars:st = [${gFrame.uvStr}] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+        rel material:binding = </Root/DirtMat>
+    }
+${pipeMat}
+${waterMat}
+${dirtMat}
+}`;
 }
 
 // ── USDZ 生成 ─────────────────────────────────────────────────────────────
@@ -614,9 +782,13 @@ async function regenerateUSDZ() {
 
     arLink.classList.remove('loading');
     btnLabel.textContent = 'ARで見る';
-    statusEl.textContent = isUG
-      ? `埋設深さ ${burialSlider.value}mm / 掘削幅 ${widthSlider.value}mm`
-      : `外径 ${od}mm × 長さ ${len}mm`;
+    if (isBuried) {
+      statusEl.textContent = `埋設ビュー｜深さ ${burialSlider.value}mm／幅 ${widthSlider.value}mm`;
+    } else if (isUG) {
+      statusEl.textContent = `地中モード｜深さ ${burialSlider.value}mm／幅 ${widthSlider.value}mm`;
+    } else {
+      statusEl.textContent = `外径 ${od}mm × 長さ ${len}mm`;
+    }
   } catch(e) {
     statusEl.textContent = 'エラー: ' + e.message;
   }
