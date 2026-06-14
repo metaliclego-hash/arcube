@@ -196,7 +196,7 @@
         <span class="param-name">掘削幅</span>
         <span><span class="param-value" id="width-val">800</span><span class="param-unit"> mm</span></span>
       </div>
-      <input type="range" id="width" min="200" max="3000" value="800" step="50">
+      <input type="range" id="width" min="0" max="3000" value="800" step="50">
     </div>
 
     <div class="info-grid-3">
@@ -323,8 +323,7 @@ function updateUI() {
 
   if (isUG) {
     const burial = parseInt(burialSlider.value);
-    // 掘削幅の最小値を外径に合わせ、現在値が外径未満なら外径にクランプ
-    widthSlider.min = od;
+    // 掘削幅が外径未満なら外径にクランプ（スライダ最小値は0のまま）
     if (parseInt(widthSlider.value) < od) widthSlider.value = od;
     const width  = parseInt(widthSlider.value);
     const tdepth = burial + od;
@@ -334,7 +333,7 @@ function updateUI() {
     document.getElementById('twidth-val').textContent = width;
     document.getElementById('tlen-val').textContent   = len;
     setPct(burialSlider, 0, 2000, burial);
-    setPct(widthSlider, od, 3000, width);
+    setPct(widthSlider, 0, 3000, width);
   }
 }
 
@@ -808,7 +807,11 @@ function scheduleRegen() {
 odSlider.addEventListener('input',     () => { updateUI(); scheduleRegen(); });
 lenSlider.addEventListener('input',    () => { updateUI(); scheduleRegen(); });
 burialSlider.addEventListener('input', () => { updateUI(); scheduleRegen(); });
-widthSlider.addEventListener('input',  () => { updateUI(); scheduleRegen(); });
+widthSlider.addEventListener('input',  () => {
+  const od = parseInt(odSlider.value);
+  if (parseInt(widthSlider.value) < od) widthSlider.value = od;
+  updateUI(); scheduleRegen();
+});
 
 updateUI();
 regenerateUSDZ();
