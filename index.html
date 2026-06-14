@@ -323,6 +323,9 @@ function updateUI() {
 
   if (isUG) {
     const burial = parseInt(burialSlider.value);
+    // 掘削幅の最小値を外径に合わせ、現在値が外径未満なら外径にクランプ
+    widthSlider.min = od;
+    if (parseInt(widthSlider.value) < od) widthSlider.value = od;
     const width  = parseInt(widthSlider.value);
     const tdepth = burial + od;
     document.getElementById('burial-val').textContent = burial;
@@ -331,7 +334,7 @@ function updateUI() {
     document.getElementById('twidth-val').textContent = width;
     document.getElementById('tlen-val').textContent   = len;
     setPct(burialSlider, 0, 2000, burial);
-    setPct(widthSlider, 200, 3000, width);
+    setPct(widthSlider, od, 3000, width);
   }
 }
 
